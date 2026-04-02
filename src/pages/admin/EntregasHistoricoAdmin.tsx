@@ -24,8 +24,9 @@ import {
   Truck, Search, MoreHorizontal, DollarSign, Loader2, MapPin, Building2,
   Calendar as CalendarIcon, CheckCircle, Clock, AlertCircle, XCircle, Package, User,
   ChevronLeft, ChevronsLeft, ChevronsRight, ChevronRight, Map, RefreshCw, History,
-  ArrowRightLeft,
+  ArrowRightLeft, Route,
 } from 'lucide-react';
+import { ViagemDetailDialog } from '@/components/viagens/ViagemDetailDialog';
 import { TrackingMapDialog } from '@/components/maps/TrackingMapDialog';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -81,6 +82,7 @@ export default function EntregasHistoricoAdmin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [trackingEntrega, setTrackingEntrega] = useState<EntregaCompleta | null>(null);
+  const [viagemEntregaId, setViagemEntregaId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfMonth(now),
     to: endOfMonth(now),
@@ -370,6 +372,10 @@ export default function EntregasHistoricoAdmin() {
                                   <Map className="w-4 h-4 mr-2" />
                                   Ver no Mapa
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setViagemEntregaId(entrega.id)}>
+                                  <Route className="w-4 h-4 mr-2" />
+                                  Ver Viagem
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -407,6 +413,11 @@ export default function EntregasHistoricoAdmin() {
           placa: trackingEntrega.veiculo?.placa || '-'
         } : null}
         onClose={() => setTrackingEntrega(null)}
+      />
+
+      <ViagemDetailDialog
+        entregaId={viagemEntregaId}
+        onClose={() => setViagemEntregaId(null)}
       />
     </div>
   );
