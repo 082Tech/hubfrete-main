@@ -770,6 +770,34 @@ export default function CargasAdmin() {
         } : null}
         onClose={() => setTrackingEntrega(null)}
       />
+
+      {/* Carga Details Dialog */}
+      {detailCarga && (
+        <CargaDetailsDialog
+          carga={{
+            ...detailCarga,
+            volume_m3: null,
+            status: detailCarga.status as any,
+            created_at: detailCarga.created_at || null,
+            remetente: detailCarga.remetente_razao_social ? {
+              nome: detailCarga.remetente_razao_social,
+              cidade: detailCarga.endereco_origem?.cidade || null,
+              estado: detailCarga.endereco_origem?.estado || null,
+            } : null,
+            destinatario: detailCarga.destinatario_razao_social ? {
+              nome: detailCarga.destinatario_razao_social,
+              cidade: detailCarga.endereco_destino?.cidade || null,
+              estado: detailCarga.endereco_destino?.estado || null,
+            } : null,
+            entregas: detailCarga.entregas.map(e => ({
+              ...e,
+              status: e.status as any,
+            })),
+          }}
+          open={!!detailCarga}
+          onOpenChange={(open) => { if (!open) setDetailCarga(null); }}
+        />
+      )}
     </div>
   );
 }
