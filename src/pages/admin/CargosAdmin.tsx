@@ -541,6 +541,29 @@ export default function CargosAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Cargo Confirmation */}
+      <AlertDialog open={!!deleteCargoTarget} onOpenChange={(open) => !open && setDeleteCargoTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cargo "{deleteCargoTarget?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso removerá o cargo e todas as suas permissões associadas. Usuários com este cargo precisarão ser reatribuídos. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteCargoTarget && deleteCargo.mutate(deleteCargoTarget)}
+              disabled={deleteCargo.isPending}
+            >
+              {deleteCargo.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
