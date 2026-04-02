@@ -417,8 +417,7 @@ export default function EntregasAdmin() {
                 <Truck className="w-3.5 h-3.5" />
                 <span className="font-mono">{viagem.veiculo?.placa || '-'}</span>
               </div>
-              <span className="text-xs text-muted-foreground">•</span>
-              <span className="text-xs text-muted-foreground">{viagem.empresa?.nome || '-'}</span>
+              <Badge variant="outline" className="text-xs ml-auto">
               <Badge variant="outline" className="text-xs ml-auto">
                 {entregaCount} {entregaCount === 1 ? 'entrega' : 'entregas'}
               </Badge>
