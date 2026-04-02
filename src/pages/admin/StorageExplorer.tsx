@@ -391,114 +391,116 @@ export default function StorageExplorer() {
                 <p>Esta pasta está vazia</p>
               </div>
             ) : (
-              <ScrollArea className="h-[500px]">
-                <div className="space-y-1">
-                  {/* Back button if in subfolder */}
-                  {currentPath && (
-                    <button
-                      onClick={() => {
-                        const parentPath = currentPath.split('/').slice(0, -1).join('/');
-                        setCurrentPath(parentPath);
-                        fetchFilesInPath(selectedBucket, parentPath);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors"
-                    >
-                      <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">..</span>
-                    </button>
-                  )}
-
-                  {/* Folders */}
-                  {filteredFolders.map((folder) => (
-                    <button
-                      key={folder}
-                      onClick={() => handleFolderClick(folder)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors text-left"
-                    >
-                      <FolderOpen className="w-5 h-5 text-chart-4" />
-                      <span className="flex-1 font-medium">{folder}</span>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    </button>
-                  ))}
-
-                  {/* Files */}
-                  {filteredFiles.map((file) => {
-                    const FileIcon = getFileIcon(file.metadata?.mimetype);
-                    const isImage = isImageFile(file.metadata?.mimetype);
-
-                    return (
-                      <div
-                        key={file.id || file.name}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
+              <>
+                <ScrollArea className="h-[500px]">
+                  <div className="space-y-1">
+                    {/* Back button if in subfolder */}
+                    {currentPath && (
+                      <button
+                        onClick={() => {
+                          const parentPath = currentPath.split('/').slice(0, -1).join('/');
+                          setCurrentPath(parentPath);
+                          setPage(0);
+                          fetchFilesInPath(selectedBucket, parentPath, 0);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors"
                       >
-                        <FileIcon className={`w-5 h-5 ${isImage ? 'text-chart-2' : 'text-muted-foreground'}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{file.name}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{formatFileSize(file.metadata?.size)}</span>
-                            {file.created_at && (
-                              <>
-                                <span>•</span>
-                                <span>{format(new Date(file.created_at), 'dd/MM/yy HH:mm', { locale: ptBR })}</span>
-                              </>
-                            )}
+                        <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">..</span>
+                      </button>
+                    )}
+
+                    {/* Folders */}
+                    {filteredFolders.map((folder) => (
+                      <button
+                        key={folder}
+                        onClick={() => handleFolderClick(folder)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors text-left"
+                      >
+                        <FolderOpen className="w-5 h-5 text-chart-4" />
+                        <span className="flex-1 font-medium">{folder}</span>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    ))}
+
+                    {/* Files */}
+                    {filteredFiles.map((file) => {
+                      const FileIcon = getFileIcon(file.metadata?.mimetype);
+                      const isImage = isImageFile(file.metadata?.mimetype);
+
+                      return (
+                        <div
+                          key={file.id || file.name}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
+                        >
+                          <FileIcon className={`w-5 h-5 ${isImage ? 'text-chart-2' : 'text-muted-foreground'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{file.name}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{formatFileSize(file.metadata?.size)}</span>
+                              {file.created_at && (
+                                <>
+                                  <span>•</span>
+                                  <span>{format(new Date(file.created_at), 'dd/MM/yy HH:mm', { locale: ptBR })}</span>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {isImage && (
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {isImage && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handlePreview(file)}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => handlePreview(file)}
+                              onClick={() => handleDownload(file)}
                             >
-                              <Eye className="w-4 h-4" />
+                              <Download className="w-4 h-4" />
                             </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleDownload(file)}
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-
-              {/* Pagination */}
-              {(files.length > 0 || folders.length > 0 || page > 0) && (
-                <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
-                  <p className="text-xs text-muted-foreground">
-                    Página {page + 1} • {totalItemsLoaded} itens carregados
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page === 0 || isLoadingFiles}
-                      onClick={() => handlePageChange(page - 1)}
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!hasMore || isLoadingFiles}
-                      onClick={() => handlePageChange(page + 1)}
-                    >
-                      Próxima
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
+                      );
+                    })}
                   </div>
-                </div>
-              )}
-            </>
+                </ScrollArea>
+
+                {/* Pagination */}
+                {(files.length > 0 || folders.length > 0 || page > 0) && (
+                  <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
+                    <p className="text-xs text-muted-foreground">
+                      Página {page + 1} • {totalItemsLoaded} itens carregados
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === 0 || isLoadingFiles}
+                        onClick={() => handlePageChange(page - 1)}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Anterior
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!hasMore || isLoadingFiles}
+                        onClick={() => handlePageChange(page + 1)}
+                      >
+                        Próxima
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
