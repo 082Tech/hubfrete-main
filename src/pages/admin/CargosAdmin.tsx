@@ -14,10 +14,14 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Shield, Plus, Settings, Lock, Unlock, Pencil, Loader2, ShieldCheck, ShieldAlert,
+  Shield, Plus, Settings, Lock, Unlock, Pencil, Loader2, ShieldCheck, ShieldAlert, Trash2,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
@@ -126,6 +130,17 @@ const categoryLabels: Record<string, string> = {
   filiais: 'Filiais',
 };
 
+// Essential cargos that cannot be deleted
+const ESSENTIAL_CARGOS: Record<string, string[]> = {
+  torre: ['super_admin', 'admin', 'suporte'],
+  embarcador: ['ADMIN', 'OPERADOR'],
+  transportadora: ['ADMIN', 'OPERADOR'],
+};
+
+function isEssentialCargo(escopo: string, nome: string) {
+  return (ESSENTIAL_CARGOS[escopo] || []).includes(nome);
+}
+
 export default function CargosAdmin() {
   const { adminUser } = useAdminContext();
   const queryClient = useQueryClient();
@@ -136,7 +151,7 @@ export default function CargosAdmin() {
   const [newCargoDesc, setNewCargoDesc] = useState('');
   const [editCargoOpen, setEditCargoOpen] = useState(false);
   const [editCargoDesc, setEditCargoDesc] = useState('');
-
+  const [deleteCargoTarget, setDeleteCargoTarget] = useState<CargoConfig | null>(null);
   // Only super_admin should see this page
   if (adminUser.role !== 'super_admin') {
     return (
@@ -245,6 +260,37 @@ export default function CargosAdmin() {
     },
   });
 
+  // Delete cargo
+  const deleteCargo = useMutation({
+    mutationFn: async (cargo: CargoConfig) => {
+      if (isEssentialCargo(cargo.escopo, cargo.nome)) {
+        throw new Error('Este cargo é essencial e não pode ser excluído');
+      }
+      // Delete permissions first
+      await (supabase as any)
+        .from('cargo_permissoes')
+        .delete()
+        .eq('escopo', cargo.escopo)
+        .eq('cargo', cargo.nome);
+      // Delete cargo
+      const { error } = await (supabase as any)
+        .from('cargos_config')
+        .delete()
+        .eq('id', cargo.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Cargo excluído!');
+      setDeleteCargoTarget(null);
+      if (selectedCargo?.id === deleteCargoTarget?.id) setSelectedCargo(null);
+      queryClient.invalidateQueries({ queryKey: ['cargos_config'] });
+      queryClient.invalidateQueries({ queryKey: ['cargo_permissoes'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Erro ao excluir cargo');
+    },
+  });
+
   const groupedPerms = groupPermissions(permissoes);
 
   return (
@@ -316,19 +362,34 @@ export default function CargosAdmin() {
                             )}
                             <span className="font-medium text-sm">{cargo.nome}</span>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCargo(cargo);
-                              setEditCargoDesc(cargo.descricao || '');
-                              setEditCargoOpen(true);
-                            }}
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </Button>
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCargo(cargo);
+                                setEditCargoDesc(cargo.descricao || '');
+                                setEditCargoOpen(true);
+                              }}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                            {!isEssentialCargo(cargo.escopo, cargo.nome) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteCargoTarget(cargo);
+                                }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         {cargo.descricao && (
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -480,6 +541,29 @@ export default function CargosAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Cargo Confirmation */}
+      <AlertDialog open={!!deleteCargoTarget} onOpenChange={(open) => !open && setDeleteCargoTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cargo "{deleteCargoTarget?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso removerá o cargo e todas as suas permissões associadas. Usuários com este cargo precisarão ser reatribuídos. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteCargoTarget && deleteCargo.mutate(deleteCargoTarget)}
+              disabled={deleteCargo.isPending}
+            >
+              {deleteCargo.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
