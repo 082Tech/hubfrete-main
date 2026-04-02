@@ -67,8 +67,9 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { formatWeight } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AdvancedSearchPopover, AdvancedSearchFilters, emptyFilters } from '@/components/cargas/AdvancedSearchPopover';
-import { format } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { DateRangePicker } from '@/components/relatorios/DateRangePicker';
 import { toast } from 'sonner';
 import OfertasGoogleMap from '@/components/maps/OfertasGoogleMap';
 import RouteGoogleMap from '@/components/maps/RouteGoogleMap';
@@ -218,6 +219,10 @@ export default function OfertasDisponiveis() {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedSearchFilters>(emptyFilters);
+  const [dateRange, setDateRange] = useState(() => ({
+    start: subDays(new Date(), 90),
+    end: new Date(),
+  }));
   const [filterTipo, setFilterTipo] = useState<string>('all');
   const [filterTiposVeiculo, setFilterTiposVeiculo] = useState<string[]>([]);
   const [tiposVeiculoInitialized, setTiposVeiculoInitialized] = useState(false);
@@ -265,7 +270,7 @@ export default function OfertasDisponiveis() {
 
   // Fetch cargas publicadas
   const { data: cargas = [], isLoading } = useQuery({
-    queryKey: ['cargas_disponiveis'],
+    queryKey: ['cargas_disponiveis', dateRange.start.toISOString(), dateRange.end.toISOString()],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cargas')
@@ -310,6 +315,8 @@ export default function OfertasDisponiveis() {
           filial:filiais!cargas_filial_id_fkey(nome)
         `)
         .in('status', ['publicada', 'parcialmente_alocada'] as any)
+        .gte('created_at', startOfDay(dateRange.start).toISOString())
+        .lte('created_at', endOfDay(dateRange.end).toISOString())
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -916,24 +923,9 @@ export default function OfertasDisponiveis() {
         }
       }
 
-      // Date range filter on data_coleta_de
-      let matchesDataColeta = true;
-      if (advancedFilters.dataColetaDe && carga.data_coleta_de) {
-        matchesDataColeta = new Date(carga.data_coleta_de) >= new Date(advancedFilters.dataColetaDe);
-      } else if (advancedFilters.dataColetaDe && !carga.data_coleta_de) {
-        matchesDataColeta = false;
-      }
-      let matchesDataColetaAte = true;
-      if (advancedFilters.dataColetaAte && carga.data_coleta_de) {
-        matchesDataColetaAte = new Date(carga.data_coleta_de) <= new Date(advancedFilters.dataColetaAte);
-      } else if (advancedFilters.dataColetaAte && !carga.data_coleta_de) {
-        matchesDataColetaAte = false;
-      }
-
       return matchesCodigo && matchesDescricao && matchesCidadeOrigem && matchesEstadoOrigem &&
         matchesCidadeDestino && matchesEstadoDestino && matchesEmbarcador &&
-        matchesDestinatario && matchesCnpjDestinatario && matchesTipo && matchesTipoVeiculo &&
-        matchesDataColeta && matchesDataColetaAte;
+        matchesDestinatario && matchesCnpjDestinatario && matchesTipo && matchesTipoVeiculo;
     });
   }, [cargas, advancedFilters, filterTipo, filterTiposVeiculo]);
 
@@ -1566,7 +1558,8 @@ export default function OfertasDisponiveis() {
               Visualize e aceite cargas publicadas pelos embarcadores
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+            <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
             <Badge variant="outline" className="text-sm">
               {filteredCargas.length} cargas
             </Badge>
