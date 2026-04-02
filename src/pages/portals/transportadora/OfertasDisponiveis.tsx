@@ -270,7 +270,7 @@ export default function OfertasDisponiveis() {
 
   // Fetch cargas publicadas
   const { data: cargas = [], isLoading } = useQuery({
-    queryKey: ['cargas_disponiveis'],
+    queryKey: ['cargas_disponiveis', dateRange.start.toISOString(), dateRange.end.toISOString()],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cargas')
@@ -315,6 +315,8 @@ export default function OfertasDisponiveis() {
           filial:filiais!cargas_filial_id_fkey(nome)
         `)
         .in('status', ['publicada', 'parcialmente_alocada'] as any)
+        .gte('created_at', startOfDay(dateRange.start).toISOString())
+        .lte('created_at', endOfDay(dateRange.end).toISOString())
         .order('created_at', { ascending: false });
 
       if (error) throw error;
