@@ -147,32 +147,44 @@ export type Database = {
         Row: {
           dados_anteriores: Json | null
           dados_novos: Json | null
+          descricao: string | null
           id: string
+          ip_address: string | null
           operacao: string
+          registro_codigo: string | null
           registro_id: string
           tabela: string
           timestamp: string
           usuario_id: string | null
+          usuario_nome: string | null
         }
         Insert: {
           dados_anteriores?: Json | null
           dados_novos?: Json | null
+          descricao?: string | null
           id?: string
+          ip_address?: string | null
           operacao: string
+          registro_codigo?: string | null
           registro_id: string
           tabela: string
           timestamp?: string
           usuario_id?: string | null
+          usuario_nome?: string | null
         }
         Update: {
           dados_anteriores?: Json | null
           dados_novos?: Json | null
+          descricao?: string | null
           id?: string
+          ip_address?: string | null
           operacao?: string
+          registro_codigo?: string | null
           registro_id?: string
           tabela?: string
           timestamp?: string
           usuario_id?: string | null
+          usuario_nome?: string | null
         }
         Relationships: []
       }
