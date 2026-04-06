@@ -436,7 +436,7 @@ export default function Logs() {
 
         {/* Details Dialog */}
         <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
@@ -444,7 +444,7 @@ export default function Logs() {
               </DialogTitle>
             </DialogHeader>
             {selectedLog && (
-              <ScrollArea className="flex-1 pr-4">
+              <ScrollArea className="flex-1 min-h-0 pr-4">
                 <div className="space-y-5">
                   {/* Header Info Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
