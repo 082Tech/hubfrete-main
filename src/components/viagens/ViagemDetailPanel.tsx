@@ -542,6 +542,7 @@ export function ViagemDetailPanel({
 
           {/* Histórico da Viagem */}
           <div>
+            <div className="flex items-center gap-2 mb-3">
               <History className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium text-sm">Histórico da Viagem</span>
             </div>
