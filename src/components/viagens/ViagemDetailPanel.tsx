@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
   X, Weight, DollarSign, Clock, History,
-  Loader2, MoreVertical, Ban, AlertTriangle, AlertCircle, ArrowRightLeft
+  Loader2, MoreVertical, Ban, AlertTriangle, AlertCircle, ArrowRightLeft, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -73,6 +73,7 @@ interface ViagemDetailPanelProps {
     updated_at?: string;
     started_at?: string | null;
     ended_at?: string | null;
+    rota_planejada_polyline?: string | null;
 
     motorista?: {
       id: string;
