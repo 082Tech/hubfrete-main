@@ -220,6 +220,15 @@ export function ViagemDetailsHistoricoDialog({ viagem, open, onOpenChange }: Via
 
               <Separator />
 
+              {/* Auditoria de Rota */}
+              <RouteDeviationPanel
+                viagemId={viagem.id}
+                polyline={viagem.rota_planejada_polyline || null}
+                viagemStatus={viagem.status}
+              />
+
+              <Separator />
+
               {/* Entregas */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
