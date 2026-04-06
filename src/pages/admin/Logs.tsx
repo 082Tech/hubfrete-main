@@ -62,6 +62,7 @@ type AuditLog = {
   dados_anteriores: Record<string, unknown> | null;
   dados_novos: Record<string, unknown> | null;
   timestamp: string;
+  empresa_nome: string | null;
 };
 
 const ITEMS_PER_PAGE = 25;
@@ -198,11 +199,7 @@ export default function Logs() {
   };
 
   const getEmpresaFromLog = (log: AuditLog): string => {
-    const data = log.dados_novos || log.dados_anteriores;
-    if (!data) return '—';
-    const nome = data.nome_fantasia || data.razao_social || data.nome;
-    if (nome && typeof nome === 'string') return nome;
-    return '—';
+    return log.empresa_nome || '—';
   };
 
   const getUserDisplay = (log: AuditLog): string => {
