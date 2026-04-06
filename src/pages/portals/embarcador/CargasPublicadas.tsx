@@ -377,9 +377,20 @@ export default function CargasPublicadas() {
   };
 
   // Apply filters - ONLY show non-finalized cargas (Publicadas view)
+  // Cargas that expired but still have active entregas (parcialmente_finalizada from expiration)
+  const expiredWithActiveEntregas = useMemo(() => {
+    return cargas.filter(c => 
+      c.status === 'parcialmente_finalizada' && 
+      c.entregas.some(e => !['entregue', 'cancelada', 'problema'].includes(e.status))
+    );
+  }, [cargas]);
+
   const filteredCargas = useMemo(() => {
-    // First, filter out all finalized cargas - this page only shows active ones
-    let result = cargas.filter(carga => !allEntregasFinalized(carga));
+    // First, filter out all finalized cargas AND expired-with-active (shown separately)
+    let result = cargas.filter(carga => 
+      !allEntregasFinalized(carga) && 
+      !expiredWithActiveEntregas.some(ec => ec.id === carga.id)
+    );
 
     // Apply search
     result = result.filter(carga =>
