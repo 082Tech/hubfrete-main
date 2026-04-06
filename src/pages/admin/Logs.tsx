@@ -219,12 +219,6 @@ export default function Logs() {
     setCurrentPage(1);
   };
 
-  const openDetailsDialog = (log: AuditLog) => {
-    setSelectedLog(log);
-    setShowRawJson(false);
-    setDetailsDialogOpen(true);
-  };
-
   // Compute changed fields for UPDATE operations
   const getChangedFields = (log: AuditLog): string[] => {
     if (log.operacao !== 'UPDATE' || !log.dados_anteriores || !log.dados_novos) return [];
