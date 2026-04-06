@@ -3877,6 +3877,7 @@ export type Database = {
         }
         Returns: string
       }
+      expirar_cargas_vencidas: { Args: never; Returns: number }
       finalizar_entrega_e_verificar_viagem: {
         Args: {
           p_documento_recebedor?: string
@@ -4010,6 +4011,7 @@ export type Database = {
         | "parcialmente_alocada"
         | "totalmente_alocada"
         | "parcialmente_finalizada"
+        | "expirada"
       status_chamado:
         | "aberto"
         | "em_andamento"
@@ -4245,6 +4247,7 @@ export const Constants = {
         "parcialmente_alocada",
         "totalmente_alocada",
         "parcialmente_finalizada",
+        "expirada",
       ],
       status_chamado: [
         "aberto",

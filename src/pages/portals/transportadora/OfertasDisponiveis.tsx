@@ -315,6 +315,7 @@ export default function OfertasDisponiveis() {
           filial:filiais!cargas_filial_id_fkey(nome)
         `)
         .in('status', ['publicada', 'parcialmente_alocada'] as any)
+        .gte('expira_em', new Date().toISOString())
         .gte('created_at', startOfDay(dateRange.start).toISOString())
         .lte('created_at', endOfDay(dateRange.end).toISOString())
         .order('created_at', { ascending: false });
