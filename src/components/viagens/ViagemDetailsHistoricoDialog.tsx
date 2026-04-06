@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { FilePreviewDialog } from '@/components/entregas/FilePreviewDialog';
 import { ViagemHistorico as ViagemHistoricoTimeline } from './ViagemHistorico';
 import { supabase } from '@/integrations/supabase/client';
+import { RouteDeviationPanel } from './RouteDeviationPanel';
 
 interface Entrega {
   id: string;
@@ -46,6 +47,7 @@ interface ViagemData {
   updated_at: string;
   ended_at: string | null;
   km_total: number | null;
+  rota_planejada_polyline?: string | null;
   mdfes?: { pdf_path: string | null }[];
   motorista: {
     id: string;
