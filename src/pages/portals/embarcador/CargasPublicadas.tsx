@@ -887,8 +887,7 @@ export default function CargasPublicadas() {
                             key={carga.id}
                             className="flex items-center justify-between p-2.5 rounded-lg bg-orange-500/10 border border-orange-500/20 cursor-pointer hover:bg-orange-500/15 transition-colors"
                             onClick={() => {
-                              setSelectedCarga(carga);
-                              setDetailsDialogOpen(true);
+                              setDetailsCarga(carga);
                             }}
                           >
                             <div className="flex items-center gap-3">
