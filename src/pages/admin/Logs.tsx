@@ -13,16 +13,11 @@ import {
   Edit,
   Trash2,
   Plus,
-  Eye,
   Shield,
   Database,
   MapPin,
   CreditCard,
   Route,
-  ChevronDown,
-  ChevronRight,
-  Globe,
-  Clock,
   UserCheck,
   Ticket,
   Lock,
@@ -47,26 +42,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Separator } from '@/components/ui/separator';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Pagination } from '@/components/admin/Pagination';
 import { useQuery } from '@tanstack/react-query';
-import { getFieldLabel, formatAuditValue, hiddenFields } from '@/lib/auditLabels';
 
 type AuditLog = {
   id: string;
@@ -160,9 +141,6 @@ export default function Logs() {
   const [filterTabela, setFilterTabela] = useState<string>('all');
   const [filterOperacao, setFilterOperacao] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [showRawJson, setShowRawJson] = useState(false);
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
     return { start: startOfDay(today), end: endOfDay(today) };
@@ -219,31 +197,12 @@ export default function Logs() {
     setCurrentPage(1);
   };
 
-  const openDetailsDialog = (log: AuditLog) => {
-    setSelectedLog(log);
-    setShowRawJson(false);
-    setDetailsDialogOpen(true);
-  };
-
-  // Compute changed fields for UPDATE operations
-  const getChangedFields = (log: AuditLog): string[] => {
-    if (log.operacao !== 'UPDATE' || !log.dados_anteriores || !log.dados_novos) return [];
-    const changed: string[] = [];
-    for (const key of Object.keys(log.dados_novos)) {
-      if (hiddenFields.has(key)) continue;
-      if (JSON.stringify(log.dados_anteriores[key]) !== JSON.stringify(log.dados_novos[key])) {
-        changed.push(key);
-      }
-    }
-    return changed;
-  };
-
-  // Build a short summary for the list
-  const getSummary = (log: AuditLog): string => {
-    if (log.descricao) return log.descricao;
-    const op = operacaoLabels[log.operacao] || log.operacao;
-    const table = tabelaLabels[log.tabela] || log.tabela;
-    return `${op} em ${table}`;
+  const getEmpresaFromLog = (log: AuditLog): string => {
+    const data = log.dados_novos || log.dados_anteriores;
+    if (!data) return '—';
+    const nome = data.nome_fantasia || data.razao_social || data.nome;
+    if (nome && typeof nome === 'string') return nome;
+    return '—';
   };
 
   const getUserDisplay = (log: AuditLog): string => {
@@ -252,8 +211,11 @@ export default function Logs() {
     return 'Sistema';
   };
 
-  const getRegistroDisplay = (log: AuditLog): string => {
-    return log.registro_codigo || log.registro_id.slice(0, 8) + '…';
+  const getSummary = (log: AuditLog): string => {
+    if (log.descricao) return log.descricao;
+    const op = operacaoLabels[log.operacao] || log.operacao;
+    const table = tabelaLabels[log.tabela] || log.tabela;
+    return `${op} em ${table}`;
   };
 
   const TabelaIcon = ({ tabela }: { tabela: string }) => {
@@ -349,26 +311,30 @@ export default function Logs() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Data/Hora</TableHead>
+                      <TableHead>Empresa</TableHead>
                       <TableHead>Usuário</TableHead>
                       <TableHead>Tabela</TableHead>
                       <TableHead>Operação</TableHead>
-                      <TableHead className="hidden lg:table-cell">Resumo</TableHead>
-                      <TableHead>Registro</TableHead>
-                      <TableHead className="w-[60px]"></TableHead>
+                      <TableHead className="w-[40%]">Descrição</TableHead>
+                      <TableHead>Data/Hora</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {logs.map((log) => {
                       const OperacaoIcon = operacaoIcons[log.operacao] || Edit;
                       return (
-                        <TableRow key={log.id} className="group cursor-pointer" onClick={() => openDetailsDialog(log)}>
-                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                            {format(new Date(log.timestamp), 'dd/MM/yy HH:mm:ss', { locale: ptBR })}
+                        <TableRow key={log.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span className="text-sm max-w-[120px] truncate">
+                                {getEmpresaFromLog(log)}
+                              </span>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                              <UserCheck className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                               <span className="text-sm font-medium max-w-[140px] truncate">
                                 {getUserDisplay(log)}
                               </span>
@@ -388,32 +354,17 @@ export default function Logs() {
                               {operacaoLabels[log.operacao] || log.operacao}
                             </Badge>
                           </TableCell>
-                          <TableCell className="hidden lg:table-cell">
-                            <span className="text-sm text-muted-foreground max-w-[260px] truncate block">
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
                               {getSummary(log)}
                             </span>
                           </TableCell>
                           <TableCell>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="font-mono text-xs text-muted-foreground cursor-help">
-                                  {getRegistroDisplay(log)}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="font-mono text-xs">{log.registro_id}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => { e.stopPropagation(); openDetailsDialog(log); }}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
+                            <span className="text-sm text-muted-foreground">
+                              {format(new Date(log.timestamp), 'dd/MM/yy', { locale: ptBR })}
+                              <br />
+                              {format(new Date(log.timestamp), 'HH:mm:ss', { locale: ptBR })}
+                            </span>
                           </TableCell>
                         </TableRow>
                       );
@@ -433,275 +384,7 @@ export default function Logs() {
             )}
           </CardContent>
         </Card>
-
-        {/* Details Dialog */}
-        <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col" aria-describedby={undefined}>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Detalhes do Log
-              </DialogTitle>
-            </DialogHeader>
-            {selectedLog && (
-              <ScrollArea className="flex-1 min-h-0 pr-4">
-                <div className="space-y-5">
-                  {/* Header Info Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                        <UserCheck className="w-3 h-3" /> Usuário
-                      </p>
-                      <p className="text-sm font-medium">
-                        {selectedLog.usuario_nome || <span className="text-muted-foreground">Sistema</span>}
-                      </p>
-                      {selectedLog.usuario_id && (
-                        <p className="font-mono text-[10px] text-muted-foreground/60 mt-0.5 truncate">
-                          {selectedLog.usuario_id}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Data/Hora
-                      </p>
-                      <p className="text-sm">
-                        {format(new Date(selectedLog.timestamp), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Operação</p>
-                      <Badge className={operacaoColors[selectedLog.operacao]}>
-                        {operacaoLabels[selectedLog.operacao] || selectedLog.operacao}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Tabela</p>
-                      <div className="flex items-center gap-2">
-                        <TabelaIcon tabela={selectedLog.tabela} />
-                        <span className="font-medium text-sm">{tabelaLabels[selectedLog.tabela] || selectedLog.tabela}</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Registro</p>
-                      <p className="text-sm font-medium">
-                        {selectedLog.registro_codigo || '—'}
-                      </p>
-                      <p className="font-mono text-[10px] text-muted-foreground/60 mt-0.5 truncate">
-                        {selectedLog.registro_id}
-                      </p>
-                    </div>
-                    {selectedLog.ip_address && (
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                          <Globe className="w-3 h-3" /> IP
-                        </p>
-                        <p className="font-mono text-xs">{selectedLog.ip_address}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Description */}
-                  {selectedLog.descricao && (
-                    <div className="bg-muted/50 rounded-lg px-3 py-2">
-                      <p className="text-sm">{selectedLog.descricao}</p>
-                    </div>
-                  )}
-
-                  <Separator />
-
-                  {/* Visual Diff Table */}
-                  {selectedLog.operacao === 'UPDATE' && selectedLog.dados_anteriores && selectedLog.dados_novos && (
-                    <DiffTable
-                      tabela={selectedLog.tabela}
-                      anterior={selectedLog.dados_anteriores}
-                      novo={selectedLog.dados_novos}
-                    />
-                  )}
-
-                  {/* INSERT: show new data as table */}
-                  {selectedLog.operacao === 'INSERT' && selectedLog.dados_novos && (
-                    <DataTable
-                      title="Dados Inseridos"
-                      tabela={selectedLog.tabela}
-                      data={selectedLog.dados_novos}
-                    />
-                  )}
-
-                  {/* DELETE: show removed data as table */}
-                  {selectedLog.operacao === 'DELETE' && selectedLog.dados_anteriores && (
-                    <DataTable
-                      title="Dados Removidos"
-                      tabela={selectedLog.tabela}
-                      data={selectedLog.dados_anteriores}
-                    />
-                  )}
-
-                  {/* Raw JSON fallback */}
-                  <Collapsible open={showRawJson} onOpenChange={setShowRawJson}>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-xs text-muted-foreground w-full justify-start gap-1">
-                        {showRawJson ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                        Ver JSON bruto
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="grid md:grid-cols-2 gap-4 mt-2">
-                        <div>
-                          <p className="text-xs font-medium mb-1 text-muted-foreground">Anterior</p>
-                          <pre className="text-[11px] font-mono whitespace-pre-wrap break-all bg-muted/50 p-3 rounded-lg border max-h-[200px] overflow-auto">
-                            {selectedLog.dados_anteriores ? JSON.stringify(selectedLog.dados_anteriores, null, 2) : 'N/A'}
-                          </pre>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium mb-1 text-muted-foreground">Novo</p>
-                          <pre className="text-[11px] font-mono whitespace-pre-wrap break-all bg-muted/50 p-3 rounded-lg border max-h-[200px] overflow-auto">
-                            {selectedLog.dados_novos ? JSON.stringify(selectedLog.dados_novos, null, 2) : 'N/A'}
-                          </pre>
-                        </div>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-              </ScrollArea>
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
     </TooltipProvider>
-  );
-}
-
-/** Visual diff table for UPDATE operations */
-function DiffTable({
-  tabela,
-  anterior,
-  novo,
-}: {
-  tabela: string;
-  anterior: Record<string, unknown>;
-  novo: Record<string, unknown>;
-}) {
-  const allKeys = new Set([...Object.keys(anterior), ...Object.keys(novo)]);
-  const changedFields: { key: string; before: unknown; after: unknown }[] = [];
-  const unchangedFields: { key: string; value: unknown }[] = [];
-
-  for (const key of allKeys) {
-    if (hiddenFields.has(key)) continue;
-    const before = anterior[key];
-    const after = novo[key];
-    if (JSON.stringify(before) !== JSON.stringify(after)) {
-      changedFields.push({ key, before, after });
-    } else {
-      unchangedFields.push({ key, value: after });
-    }
-  }
-
-  const [showUnchanged, setShowUnchanged] = useState(false);
-
-  return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium">Campos Alterados ({changedFields.length})</p>
-      {changedFields.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Nenhuma alteração significativa detectada.</p>
-      ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead className="w-[35%] text-xs">Campo</TableHead>
-                <TableHead className="w-[32.5%] text-xs">Antes</TableHead>
-                <TableHead className="w-[32.5%] text-xs">Depois</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {changedFields.map(({ key, before, after }) => (
-                <TableRow key={key}>
-                  <TableCell className="text-sm font-medium py-2">
-                    {getFieldLabel(tabela, key)}
-                  </TableCell>
-                  <TableCell className="text-sm py-2 text-destructive/80">
-                    {formatAuditValue(before)}
-                  </TableCell>
-                  <TableCell className="text-sm py-2 text-chart-1">
-                    {formatAuditValue(after)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      {unchangedFields.length > 0 && (
-        <Collapsible open={showUnchanged} onOpenChange={setShowUnchanged}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1">
-              {showUnchanged ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-              {unchangedFields.length} campos sem alteração
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="border rounded-lg overflow-hidden mt-2">
-              <Table>
-                <TableBody>
-                  {unchangedFields.map(({ key, value }) => (
-                    <TableRow key={key}>
-                      <TableCell className="text-sm text-muted-foreground py-1.5 w-[35%]">
-                        {getFieldLabel(tabela, key)}
-                      </TableCell>
-                      <TableCell className="text-sm py-1.5 text-muted-foreground">
-                        {formatAuditValue(value)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-    </div>
-  );
-}
-
-/** Data table for INSERT/DELETE — shows field-value pairs */
-function DataTable({
-  title,
-  tabela,
-  data,
-}: {
-  title: string;
-  tabela: string;
-  data: Record<string, unknown>;
-}) {
-  const entries = Object.entries(data).filter(([key]) => !hiddenFields.has(key));
-
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium">{title}</p>
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/30">
-              <TableHead className="w-[40%] text-xs">Campo</TableHead>
-              <TableHead className="text-xs">Valor</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map(([key, value]) => (
-              <TableRow key={key}>
-                <TableCell className="text-sm font-medium py-2">
-                  {getFieldLabel(tabela, key)}
-                </TableCell>
-                <TableCell className="text-sm py-2">
-                  {formatAuditValue(value)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
   );
 }
