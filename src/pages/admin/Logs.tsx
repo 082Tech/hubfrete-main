@@ -240,19 +240,18 @@ export default function Logs() {
     return `${op} em ${table}`;
   };
 
+  const getEmpresaFromLog = (log: AuditLog): string => {
+    const data = log.dados_novos || log.dados_anteriores;
+    if (!data) return '—';
+    const nome = data.nome_fantasia || data.razao_social || data.nome;
+    if (nome && typeof nome === 'string') return nome;
+    return '—';
+  };
+
   const getUserDisplay = (log: AuditLog): string => {
     if (log.usuario_nome) return log.usuario_nome;
     if (log.usuario_id) return log.usuario_id.slice(0, 8) + '…';
     return 'Sistema';
-  };
-
-  const getRegistroDisplay = (log: AuditLog): string => {
-    return log.registro_codigo || log.registro_id.slice(0, 8) + '…';
-  };
-
-  const TabelaIcon = ({ tabela }: { tabela: string }) => {
-    const Icon = tabelaIcons[tabela] || Database;
-    return <Icon className="w-4 h-4" />;
   };
 
   return (
