@@ -346,6 +346,7 @@ export default function HistoricoCargas() {
     // ELA VAI PRO HISTÓRICO mesmo que não tenha 100% das entregas ativas finalizadas. 
     // OBS: O Cron job agora OBRIGA que não haja entregas ativas para ela assumir este status.
     if (carga.status === 'parcialmente_finalizada') return true;
+    if (carga.status === 'expirada') return true;
 
     if (carga.entregas.length === 0) return false;
     return carga.entregas.every(e => ['entregue', 'cancelada', 'problema'].includes(e.status));
