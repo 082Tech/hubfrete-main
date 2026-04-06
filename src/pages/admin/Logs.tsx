@@ -160,9 +160,7 @@ export default function Logs() {
   const [filterTabela, setFilterTabela] = useState<string>('all');
   const [filterOperacao, setFilterOperacao] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [showRawJson, setShowRawJson] = useState(false);
+  
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
     return { start: startOfDay(today), end: endOfDay(today) };
