@@ -57,6 +57,8 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  AlertTriangle,
+  Timer,
   RotateCcw,
   User,
   ChevronLeft,
@@ -377,9 +379,20 @@ export default function CargasPublicadas() {
   };
 
   // Apply filters - ONLY show non-finalized cargas (Publicadas view)
+  // Cargas that expired but still have active entregas (parcialmente_finalizada from expiration)
+  const expiredWithActiveEntregas = useMemo(() => {
+    return cargas.filter(c => 
+      c.status === 'parcialmente_finalizada' && 
+      c.entregas.some(e => !['entregue', 'cancelada', 'problema'].includes(e.status))
+    );
+  }, [cargas]);
+
   const filteredCargas = useMemo(() => {
-    // First, filter out all finalized cargas - this page only shows active ones
-    let result = cargas.filter(carga => !allEntregasFinalized(carga));
+    // First, filter out all finalized cargas AND expired-with-active (shown separately)
+    let result = cargas.filter(carga => 
+      !allEntregasFinalized(carga) && 
+      !expiredWithActiveEntregas.some(ec => ec.id === carga.id)
+    );
 
     // Apply search
     result = result.filter(carga =>
@@ -853,7 +866,55 @@ export default function CargasPublicadas() {
             </Card>
           </div>
 
-          {/* Filters Row */}
+          {/* Expired cargas with active deliveries alert */}
+          {expiredWithActiveEntregas.length > 0 && (
+            <Card className="border-orange-500/30 bg-orange-500/5">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-orange-700 dark:text-orange-400 mb-1">
+                      Ofertas Expiradas com Entregas em Andamento
+                    </h3>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Estas ofertas não estão mais visíveis para novas transportadoras, mas as entregas já alocadas continuam normalmente.
+                    </p>
+                    <div className="space-y-2">
+                      {expiredWithActiveEntregas.map((carga) => {
+                        const activeEntregas = carga.entregas.filter(e => !['entregue', 'cancelada', 'problema'].includes(e.status));
+                        return (
+                          <div
+                            key={carga.id}
+                            className="flex items-center justify-between p-2.5 rounded-lg bg-orange-500/10 border border-orange-500/20 cursor-pointer hover:bg-orange-500/15 transition-colors"
+                            onClick={() => {
+                              setDetailsCarga(carga);
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Badge className="bg-orange-500/15 text-orange-600 border-orange-500/25 text-[11px]">
+                                {carga.codigo}
+                              </Badge>
+                              <span className="text-sm text-foreground truncate max-w-[200px]">{carga.descricao}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400">
+                                <Timer className="w-3.5 h-3.5" />
+                                <span>{activeEntregas.length} entrega{activeEntregas.length !== 1 ? 's' : ''} ativa{activeEntregas.length !== 1 ? 's' : ''}</span>
+                              </div>
+                              <Badge variant="outline" className="text-[10px] border-orange-500/30 text-orange-600">
+                                Oferta Expirada
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="flex flex-wrap items-center gap-3">
             <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
               <SelectTrigger className="w-48">
