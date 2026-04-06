@@ -221,7 +221,7 @@ export default function HistoricoEntregas() {
         .from('viagens')
         .select(`
           id, codigo, status, created_at, updated_at, ended_at,
-          km_total,
+           km_total, rota_planejada_polyline,
           mdfes(pdf_path, status),
           motorista:motoristas(id, nome_completo, telefone),
           veiculo:veiculos(placa, tipo)

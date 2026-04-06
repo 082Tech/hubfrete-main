@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   Truck, MapPin, ArrowRight, CheckCircle, XCircle, FileText, Package,
   X, Weight, DollarSign, Clock, History,
-  Loader2, MoreVertical, Ban, AlertTriangle, AlertCircle, ArrowRightLeft
+  Loader2, MoreVertical, Ban, AlertTriangle, AlertCircle, ArrowRightLeft, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,7 @@ import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
 import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
 import { fetchManifestosForViagens, getActiveManifesto, fetchCtesForEntregas } from '@/lib/documentHelpers';
+import { RouteDeviationPanel } from './RouteDeviationPanel';
 import { supabase } from '@/integrations/supabase/client';
 interface ViagemEntregaEvento {
   id: string;
@@ -73,6 +74,7 @@ interface ViagemDetailPanelProps {
     updated_at?: string;
     started_at?: string | null;
     ended_at?: string | null;
+    rota_planejada_polyline?: string | null;
 
     motorista?: {
       id: string;
@@ -524,6 +526,19 @@ export function ViagemDetailPanel({
           </div>
 
 
+          {/* Auditoria de Rota */}
+          <Separator />
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart3 className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="font-medium text-xs">Auditoria de Rota</span>
+            </div>
+            <RouteDeviationPanel
+              viagemId={viagem.id}
+              polyline={viagem.rota_planejada_polyline || null}
+              viagemStatus={viagem.status}
+            />
+          </div>
 
           {/* Histórico da Viagem */}
           <div>
