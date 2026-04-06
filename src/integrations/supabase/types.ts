@@ -148,6 +148,7 @@ export type Database = {
           dados_anteriores: Json | null
           dados_novos: Json | null
           descricao: string | null
+          empresa_nome: string | null
           id: string
           ip_address: string | null
           operacao: string
@@ -162,6 +163,7 @@ export type Database = {
           dados_anteriores?: Json | null
           dados_novos?: Json | null
           descricao?: string | null
+          empresa_nome?: string | null
           id?: string
           ip_address?: string | null
           operacao: string
@@ -176,6 +178,7 @@ export type Database = {
           dados_anteriores?: Json | null
           dados_novos?: Json | null
           descricao?: string | null
+          empresa_nome?: string | null
           id?: string
           ip_address?: string | null
           operacao?: string
