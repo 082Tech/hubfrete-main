@@ -37,6 +37,7 @@ import { ViagemMultiPointMap } from '@/components/maps/ViagemMultiPointMap';
 import { ViagemHistorico } from './ViagemHistorico';
 import { fetchAllTrackingHistoricoByViagemId } from '@/lib/fetchAllTrackingHistorico';
 import { fetchManifestosForViagens, getActiveManifesto, fetchCtesForEntregas } from '@/lib/documentHelpers';
+import { RouteDeviationPanel } from './RouteDeviationPanel';
 import { supabase } from '@/integrations/supabase/client';
 interface ViagemEntregaEvento {
   id: string;
