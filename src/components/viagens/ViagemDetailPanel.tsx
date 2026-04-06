@@ -301,10 +301,9 @@ export function ViagemDetailPanel({
     setIsProcessingViagem(true);
     try {
       await onCancel(viagem.id);
-      toast.success('Viagem cancelada');
       setCancelDialogOpen(false);
     } catch (error) {
-      toast.error('Erro ao cancelar viagem');
+      // O erro já é tratado pelo onError da mutation no OperacaoDiaria
     } finally {
       setIsProcessingViagem(false);
     }
