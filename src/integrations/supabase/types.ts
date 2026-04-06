@@ -3854,6 +3854,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cancelar_viagem_completa: { Args: { p_viagem_id: string }; Returns: Json }
       create_chat_for_entrega: {
         Args: { p_entrega_id: string }
         Returns: string
