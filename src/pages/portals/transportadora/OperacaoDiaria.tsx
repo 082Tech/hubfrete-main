@@ -2075,54 +2075,43 @@ export default function OperacaoDiaria() {
     },
   });
 
-  // Mutation para cancelar viagem (cancela todas as entregas dentro e libera peso)
+  // Mutation para cancelar viagem (RPC atômico — cancela entregas, restaura peso e cancela viagem numa transação)
   const cancelarViagemMutation = useMutation({
     mutationFn: async (viagemId: string) => {
-      // 1. Buscar entregas ativas da viagem (não já canceladas/entregues)
-      const { data: viagemEntregas, error: fetchError } = await supabase
-        .from('viagem_entregas')
-        .select('entrega_id')
-        .eq('viagem_id', viagemId);
+      const { data, error } = await supabase.rpc('cancelar_viagem_completa', {
+        p_viagem_id: viagemId,
+      });
 
-      if (fetchError) throw fetchError;
-
-      const entregaIds = (viagemEntregas || []).map(ve => ve.entrega_id);
-
-      if (entregaIds.length > 0) {
-        // 2. Cancelar todas as entregas que não estão finalizadas
-        // O trigger do banco (trigger_release_weight_on_entrega_cancel) 
-        // libera automaticamente o peso na carga
-        const { error: entregasError } = await supabase
-          .from('entregas')
-          .update({
-            status: 'cancelada',
-            updated_at: new Date().toISOString()
-          })
-          .in('id', entregaIds)
-          .not('status', 'in', '("entregue","cancelada")');
-
-        if (entregasError) throw entregasError;
+      if (error) {
+        // Mapear erros específicos do RPC
+        const msg = error.message || '';
+        if (msg.includes('VIAGEM_JA_CANCELADA')) {
+          throw new Error('Esta viagem já foi cancelada.');
+        }
+        if (msg.includes('VIAGEM_JA_FINALIZADA')) {
+          throw new Error('Viagens finalizadas não podem ser canceladas.');
+        }
+        if (msg.includes('VIAGEM_NAO_ENCONTRADA')) {
+          throw new Error('Viagem não encontrada.');
+        }
+        throw error;
       }
 
-      // 3. Cancelar a viagem
-      const { error } = await supabase
-        .from('viagens')
-        .update({
-          status: 'cancelada',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', viagemId);
-
-      if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['gestao-viagens'] });
       queryClient.invalidateQueries({ queryKey: ['gestao-entregas'] });
+      queryClient.invalidateQueries({ queryKey: ['gestao-cargas'] });
       setSelectedViagem(null);
+      const result = data as Record<string, unknown> | null;
+      if (result?.mensagem) {
+        toast.success(String(result.mensagem));
+      }
     },
     onError: (error) => {
       console.error('Erro ao cancelar viagem:', error);
-      throw error;
+      toast.error(error instanceof Error ? error.message : 'Erro ao cancelar viagem');
     },
   });
 
