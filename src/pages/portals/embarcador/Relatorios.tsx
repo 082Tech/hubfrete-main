@@ -58,6 +58,10 @@ const CHART_COLORS = [
 const statusLabels: Record<string, string> = {
   'rascunho': 'Rascunho',
   'publicada': 'Publicada',
+  'parcialmente_alocada': 'Parcialmente Alocada',
+  'totalmente_alocada': 'Totalmente Alocada',
+  'parcialmente_finalizada': 'Finalizada (Parcial)',
+  'expirada': 'Expirada',
   'aceita': 'Aceita',
   'em_coleta': 'Em Coleta',
   'em_transito': 'Em Trânsito',

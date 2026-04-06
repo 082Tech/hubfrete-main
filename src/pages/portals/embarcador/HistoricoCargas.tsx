@@ -172,6 +172,7 @@ const statusEntregaConfig: Record<string, { label: string; color: string; icon: 
   cancelada: { label: 'Cancelada', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: RotateCcw },
   problema: { label: 'Problema', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
   parcialmente_finalizada: { label: 'Finalizada (Parcial)', color: 'bg-gray-100 text-gray-600 border-gray-300', icon: CheckCircle2 },
+  expirada: { label: 'Expirada', color: 'bg-orange-100 text-orange-600 border-orange-200', icon: AlertCircle },
 };
 
 // Filter options for Histórico - only finalized states
