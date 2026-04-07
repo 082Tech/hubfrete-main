@@ -12,6 +12,28 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: "1.5.0",
+    date: "2026-04-07",
+    slides: [
+      {
+        title: "Desvio de Rota no Mapa 🗺️",
+        description: "Agora é possível visualizar o caminho sugerido versus o histórico real de rastreamento no mapa, identificando facilmente quando o motorista desvia da rota planejada.",
+      },
+      {
+        title: "Gestão de Cargos e Permissões 🔒",
+        description: "Sistema de cargos reformulado na Torre de Controle e nos portais. O cargo 'Suporte' agora possui restrições operacionais (sem baixa financeira, sem edição de empresas). Navegação do menu se adapta automaticamente às permissões do usuário.",
+      },
+      {
+        title: "Correções Importantes 🛠️",
+        description: "• Corrigido bug na expiração automática de cargas<br/>• Cancelamento de viagem agora restaura peso e capacidade corretamente (operação atômica)<br/>• Logs de auditoria aprimorados com descrições mais detalhadas e contextuais<br/>• Tela de Integrações redesenhada com logos reais de ERP/TMS (TOTVS, SAP, Oracle, Emakers)",
+      },
+      {
+        title: "Melhorias de Interface ✨",
+        description: "• Ajustes de padding e espaçamento em diversas telas dos portais<br/>• Estatísticas de usuários otimizadas para refletir modelo de cargos dinâmico<br/>• Descrições de cargos visíveis ao criar/editar usuários para facilitar a escolha",
+      },
+    ],
+  },
+  {
     version: "1.4.0",
     date: "2026-03-31",
     slides: [
