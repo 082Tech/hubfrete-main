@@ -467,6 +467,7 @@ export default function UsuariosEmpresa() {
           usuario={editingUser}
           filiais={contextFiliais.map(f => ({ id: f.id, nome: f.nome || 'Sem nome' }))}
           companyType="transportadora"
+          empresaId={empresa?.id ?? null}
           onSuccess={() => {
             refetchUsuarios();
             setEditingUser(null);
