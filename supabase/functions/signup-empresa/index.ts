@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
         auth_user_id: userId,
         email: email,
         nome: nome,
-        cargo: 'ADMIN',
+        cargo: 'Administrador',
         motorista_autonomo: false,
       })
       .select('id')
@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
       .insert({
         usuario_id: usuario.id,
         filial_id: filial.id,
-        cargo_na_filial: 'ADMIN',
+        cargo_na_filial: 'Administrador',
       })
 
     if (ufError) throw ufError
