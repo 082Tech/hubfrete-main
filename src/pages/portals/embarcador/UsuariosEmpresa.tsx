@@ -67,12 +67,12 @@ interface UsuarioComFiliais {
 }
 
 function getRoleLabel(cargo: string): string {
-  if (cargo === 'ADMIN') return 'Administrador';
+  if (cargo === 'Administrador') return 'Administrador';
   return cargo;
 }
 
 function getRoleColor(cargo: string): string {
-  if (cargo === 'ADMIN') return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+  if (cargo === 'Administrador') return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
   return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
 }
 
@@ -259,7 +259,7 @@ export default function UsuariosEmpresa() {
 
   const stats = {
     total: usuarios.length,
-    admins: usuarios.filter(u => u.cargo === 'ADMIN').length,
+    admins: usuarios.filter(u => u.cargo === 'Administrador').length,
     operadores: usuarios.filter(u => u.cargo === 'OPERADOR').length,
     pendingInvites: invites.filter(i => i.status === 'pending').length,
   };
