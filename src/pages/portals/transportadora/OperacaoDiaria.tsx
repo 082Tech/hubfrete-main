@@ -1941,12 +1941,12 @@ export default function OperacaoDiaria() {
       });
 
       const updates: {
-        status: string;
+        status: Database['public']['Enums']['status_entrega'];
         updated_at: string;
         entregue_em?: string;
         coletado_em?: string;
       } = {
-        status: normalizedStatus,
+        status: normalizedStatus as Database['public']['Enums']['status_entrega'],
         updated_at: new Date().toISOString(),
       };
 
