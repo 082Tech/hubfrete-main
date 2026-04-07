@@ -829,6 +829,11 @@ export default function OfertasDisponiveis() {
           : `Carga ${data.entregaCodigo || ''} gerada`,
       }).then(() => {});
 
+      // Recalculate planned route if cargo was added to an existing active trip
+      if (data.viagemId) {
+        savePlannedRoute(data.viagemId);
+      }
+
       if (data.merged) {
         toast.success(`Peso adicionado à entrega existente (${data.entregaCodigo || ''})`);
       } else {
