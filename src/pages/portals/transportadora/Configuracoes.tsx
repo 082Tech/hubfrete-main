@@ -113,7 +113,7 @@ export default function Configuracoes() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cargo">Cargo</Label>
-                    <Input id="cargo" value={userData.cargo === 'ADMIN' ? 'Administrador' : 'Operador'} disabled />
+                    <Input id="cargo" value={userData.cargo || 'Sem cargo'} disabled />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
