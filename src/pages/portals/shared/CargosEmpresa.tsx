@@ -131,7 +131,7 @@ export default function CargosEmpresa() {
   const [editCargoDesc, setEditCargoDesc] = useState('');
   const [deleteCargoTarget, setDeleteCargoTarget] = useState<EmpresaCargoConfig | null>(null);
 
-  const isAdmin = cargo === 'Administrador';
+  const isAdmin = (cargo as string) === 'Administrador';
 
   const { data: cargos = [], isLoading: loadingCargos } = useQuery({
     queryKey: ['empresa_cargos_config', empresaId],

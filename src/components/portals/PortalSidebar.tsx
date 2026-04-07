@@ -206,7 +206,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   const [frotaOpen, setFrotaOpen] = useState(isFrotaSubmenuActive);
 
   const empresaSubmenu = userType === 'embarcador' ? embarcadorEmpresaSubmenu : transportadoraEmpresaSubmenu;
-  const empresaSubItems = cargo === 'Administrador' ? empresaSubmenu.subItems : empresaSubmenu.subItems.filter(s => !(s as any).adminOnly);
+  const empresaSubItems = (cargo as string) === 'Administrador' ? empresaSubmenu.subItems : empresaSubmenu.subItems.filter(s => !(s as any).adminOnly);
   const isEmpresaSubmenuActive = empresaSubItems.some(
     (sub) => location.pathname === sub.href
   );
@@ -434,7 +434,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                         </DropdownMenuItem>
                       );
                     })}
-                    {cargo === 'Administrador' && (
+                    {(cargo as string) === 'Administrador' && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem

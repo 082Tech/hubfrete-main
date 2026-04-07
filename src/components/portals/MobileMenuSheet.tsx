@@ -103,7 +103,7 @@ export function MobileMenuSheet({ open, onOpenChange, userType }: MobileMenuShee
   const { empresa, filiais, filialAtiva, setFilialAtiva, cargo, switchingFilial } = useUserContext();
   
   const menuItems = userType === 'embarcador' ? embarcadorMenuItems : transportadoraMenuItems;
-  const filteredItems = menuItems.filter(item => !item.adminOnly || cargo === 'Administrador');
+  const filteredItems = menuItems.filter(item => !item.adminOnly || (cargo as string) === 'Administrador');
   const config = portalConfig[userType];
   const PortalIcon = config.icon;
 
@@ -241,7 +241,7 @@ export function MobileMenuSheet({ open, onOpenChange, userType }: MobileMenuShee
                       </DropdownMenuItem>
                     );
                   })}
-                  {cargo === 'Administrador' && (
+                  {(cargo as string) === 'Administrador' && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
