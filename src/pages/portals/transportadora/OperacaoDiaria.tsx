@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { formatWeight } from '@/lib/utils';
+import { savePlannedRoute } from '@/lib/savePlannedRoute';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -2018,6 +2019,9 @@ export default function OperacaoDiaria() {
         .eq('id', viagemId);
 
       if (error) throw error;
+
+      // Fire-and-forget: save planned route polyline via OSRM
+      savePlannedRoute(viagemId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gestao-viagens'] });
