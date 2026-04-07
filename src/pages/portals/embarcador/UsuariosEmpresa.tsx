@@ -54,29 +54,27 @@ import { useTableSort } from '@/hooks/useTableSort';
 import { useDraggableColumns, ColumnDefinition } from '@/hooks/useDraggableColumns';
 import { DraggableTableHead } from '@/components/ui/draggable-table-head';
 
-type UserRole = 'ADMIN' | 'OPERADOR';
-
 const ITEMS_PER_PAGE = 12;
 
 interface UsuarioComFiliais {
   id: number;
   nome: string | null;
   email: string | null;
-  cargo: UserRole | null;
+  cargo: string | null;
   auth_user_id: string | null;
   filiais: { id: number; nome: string | null }[];
   isPending?: boolean;
 }
 
-const roleLabels: Record<UserRole, string> = {
-  ADMIN: 'Administrador',
-  OPERADOR: 'Operador',
-};
+function getRoleLabel(cargo: string): string {
+  if (cargo === 'ADMIN') return 'Administrador';
+  return cargo;
+}
 
-const roleColors: Record<UserRole, string> = {
-  ADMIN: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-  OPERADOR: 'bg-green-500/10 text-green-600 border-green-500/20',
-};
+function getRoleColor(cargo: string): string {
+  if (cargo === 'ADMIN') return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+  return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+}
 
 const columns: ColumnDefinition[] = [
   { id: 'usuario', label: 'Usuário', minWidth: '200px', sticky: 'left', sortable: true, sortKey: 'nome' },
@@ -153,7 +151,7 @@ export default function UsuariosEmpresa() {
 
         return {
           ...u,
-          cargo: (u.cargo || cargoFromFilial) as UserRole | null,
+          cargo: (u.cargo || cargoFromFilial) as string | null,
           filiais: userFiliais,
         };
       });
@@ -187,7 +185,7 @@ export default function UsuariosEmpresa() {
       id: -(idx + 1),
       nome: inv.email.split('@')[0],
       email: inv.email,
-      cargo: inv.role as UserRole,
+      cargo: inv.role as string,
       auth_user_id: null,
       filiais: inv.filial_id 
         ? contextFiliais.filter(f => f.id === inv.filial_id).map(f => ({ id: f.id, nome: f.nome || 'Sem nome' }))
@@ -201,7 +199,7 @@ export default function UsuariosEmpresa() {
     allUsuarios.filter(usuario => 
       (usuario.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (usuario.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (usuario.cargo && roleLabels[usuario.cargo]?.toLowerCase().includes(searchTerm.toLowerCase()))
+      (usuario.cargo && getRoleLabel(usuario.cargo!)?.toLowerCase().includes(searchTerm.toLowerCase()))
     ), [allUsuarios, searchTerm]);
 
   const sortFunctions = useMemo(() => ({
@@ -301,8 +299,8 @@ export default function UsuariosEmpresa() {
         return (
           <td className="p-4 align-middle">
             {usuario.cargo && (
-              <Badge variant="outline" className={roleColors[usuario.cargo]}>
-                {roleLabels[usuario.cargo]}
+              <Badge variant="outline" className={getRoleColor(usuario.cargo!)}>
+                {getRoleLabel(usuario.cargo!)}
               </Badge>
             )}
           </td>
@@ -379,8 +377,8 @@ export default function UsuariosEmpresa() {
                   </Badge>
                 )}
                 {usuario.cargo && !usuario.isPending && (
-                  <Badge variant="outline" className={`${roleColors[usuario.cargo]} text-[10px]`}>
-                    {roleLabels[usuario.cargo]}
+                  <Badge variant="outline" className={`${getRoleColor(usuario.cargo!)} text-[10px]`}>
+                    {getRoleLabel(usuario.cargo!)}
                   </Badge>
                 )}
               </div>
@@ -454,6 +452,7 @@ export default function UsuariosEmpresa() {
           usuario={editingUser}
           filiais={contextFiliais.map(f => ({ id: f.id, nome: f.nome || 'Sem nome' }))}
           companyType="embarcador"
+          empresaId={empresa?.id ?? null}
           onSuccess={() => {
             refetchUsuarios();
             setEditingUser(null);
