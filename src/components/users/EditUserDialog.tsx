@@ -92,7 +92,7 @@ export function EditUserDialog({
       // Update usuario
       const { error: updateError } = await supabase
         .from('usuarios')
-        .update({ nome, cargo: role })
+        .update({ nome, cargo: role as any })
         .eq('id', usuario.id);
 
       if (updateError) throw updateError;
@@ -136,7 +136,7 @@ export function EditUserDialog({
       if (existingFiliais.length > 0) {
         const { error: updateFilialError } = await supabase
           .from('usuarios_filiais')
-          .update({ cargo_na_filial: role })
+          .update({ cargo_na_filial: role as any })
           .eq('usuario_id', usuario.id)
           .in('filial_id', existingFiliais);
 
