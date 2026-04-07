@@ -1940,7 +1940,12 @@ export default function OperacaoDiaria() {
         normalizedStatus,
       });
 
-      const updates: Record<string, any> = {
+      const updates: {
+        status: string;
+        updated_at: string;
+        entregue_em?: string;
+        coletado_em?: string;
+      } = {
         status: normalizedStatus,
         updated_at: new Date().toISOString(),
       };
