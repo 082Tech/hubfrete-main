@@ -21,7 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Mail, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useCargosConfig } from '@/hooks/useCargosConfig';
+import { useEmpresaCargos } from '@/hooks/useEmpresaCargos';
 
 interface Filial {
   id: number;
@@ -46,12 +46,15 @@ export function InviteUserDialog({
   onSuccess,
 }: InviteUserDialogProps) {
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'ADMIN' | 'OPERADOR'>('OPERADOR');
+  const [role, setRole] = useState('');
   const [selectedFiliais, setSelectedFiliais] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
-  const { data: cargos = [] } = useCargosConfig(companyType);
+  const { data: cargos = [], isLoading: loadingCargos } = useEmpresaCargos(companyId ? Number(companyId) : null);
 
-  const selectedCargoDesc = cargos.find(c => c.nome === role)?.descricao;
+  // Auto-select first non-admin cargo when cargos load
+  const defaultRole = cargos.find(c => c.editavel)?.nome || cargos[0]?.nome || '';
+  const activeRole = role || defaultRole;
+  const selectedCargo = cargos.find(c => c.nome === activeRole);
 
   const toggleFilial = (filialId: number) => {
     setSelectedFiliais(prev =>
@@ -64,6 +67,11 @@ export function InviteUserDialog({
   const handleInvite = async () => {
     if (!email) {
       toast.error('Digite o email do usuário');
+      return;
+    }
+
+    if (!activeRole) {
+      toast.error('Selecione a função do usuário');
       return;
     }
 
@@ -82,7 +90,7 @@ export function InviteUserDialog({
           company_type: companyType,
           company_id: companyId,
           filial_id: selectedFiliais.length > 0 ? selectedFiliais[0] : undefined,
-          role,
+          role: activeRole,
         },
       });
 
@@ -128,7 +136,7 @@ export function InviteUserDialog({
 
   const resetForm = () => {
     setEmail('');
-    setRole('OPERADOR');
+    setRole('');
     setSelectedFiliais([]);
   };
 
@@ -163,21 +171,20 @@ export function InviteUserDialog({
 
           <div className="space-y-2">
             <Label htmlFor="invite-role">Função</Label>
-            <Select value={role} onValueChange={(value: 'ADMIN' | 'OPERADOR') => setRole(value)}>
+            <Select value={activeRole} onValueChange={setRole} disabled={loadingCargos}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione a função" />
+                <SelectValue placeholder={loadingCargos ? 'Carregando...' : 'Selecione a função'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ADMIN">Administrador</SelectItem>
-                <SelectItem value="OPERADOR">Operador</SelectItem>
+                {cargos.map((cargo) => (
+                  <SelectItem key={cargo.id} value={cargo.nome}>
+                    {cargo.nome === 'ADMIN' ? 'Administrador' : cargo.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            {selectedCargoDesc ? (
-              <p className="text-xs text-muted-foreground">{selectedCargoDesc}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Administradores têm acesso total. Operadores podem gerenciar cargas.
-              </p>
+            {selectedCargo?.descricao && (
+              <p className="text-xs text-muted-foreground">{selectedCargo.descricao}</p>
             )}
           </div>
 

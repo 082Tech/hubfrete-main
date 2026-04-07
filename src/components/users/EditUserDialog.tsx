@@ -21,7 +21,7 @@ import {
 import { Loader2, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useCargosConfig } from '@/hooks/useCargosConfig';
+import { useEmpresaCargos } from '@/hooks/useEmpresaCargos';
 
 interface Filial {
   id: number;
@@ -32,7 +32,7 @@ interface UsuarioToEdit {
   id: number;
   nome: string | null;
   email: string | null;
-  cargo: 'ADMIN' | 'OPERADOR' | null;
+  cargo: string | null;
   filiais: { id: number; nome: string | null }[];
 }
 
@@ -43,6 +43,7 @@ interface EditUserDialogProps {
   filiais: Filial[];
   onSuccess?: () => void;
   companyType?: 'embarcador' | 'transportadora';
+  empresaId?: number | null;
 }
 
 export function EditUserDialog({
@@ -52,19 +53,20 @@ export function EditUserDialog({
   filiais,
   onSuccess,
   companyType,
+  empresaId,
 }: EditUserDialogProps) {
   const [nome, setNome] = useState('');
-  const [role, setRole] = useState<'ADMIN' | 'OPERADOR'>('OPERADOR');
+  const [role, setRole] = useState('');
   const [selectedFiliais, setSelectedFiliais] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
-  const { data: cargos = [] } = useCargosConfig(companyType || null);
+  const { data: cargos = [], isLoading: loadingCargos } = useEmpresaCargos(empresaId ?? null);
 
-  const selectedCargoDesc = cargos.find(c => c.nome === role)?.descricao;
+  const selectedCargo = cargos.find(c => c.nome === role);
 
   useEffect(() => {
     if (usuario) {
       setNome(usuario.nome || '');
-      setRole(usuario.cargo || 'OPERADOR');
+      setRole(usuario.cargo || '');
       setSelectedFiliais(usuario.filiais.map(f => f.id));
     }
   }, [usuario]);
@@ -192,21 +194,20 @@ export function EditUserDialog({
 
           <div className="space-y-2">
             <Label htmlFor="edit-role">Função</Label>
-            <Select value={role} onValueChange={(value: 'ADMIN' | 'OPERADOR') => setRole(value)}>
+            <Select value={role} onValueChange={setRole} disabled={loadingCargos}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione a função" />
+                <SelectValue placeholder={loadingCargos ? 'Carregando...' : 'Selecione a função'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ADMIN">Administrador</SelectItem>
-                <SelectItem value="OPERADOR">Operador</SelectItem>
+                {cargos.map((cargo) => (
+                  <SelectItem key={cargo.id} value={cargo.nome}>
+                    {cargo.nome === 'ADMIN' ? 'Administrador' : cargo.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            {selectedCargoDesc ? (
-              <p className="text-xs text-muted-foreground">{selectedCargoDesc}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Administradores têm acesso total. Operadores podem gerenciar cargas.
-              </p>
+            {selectedCargo?.descricao && (
+              <p className="text-xs text-muted-foreground">{selectedCargo.descricao}</p>
             )}
           </div>
 
