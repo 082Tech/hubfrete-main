@@ -1331,6 +1331,79 @@ export type Database = {
         }
         Relationships: []
       }
+      empresa_cargo_permissoes: {
+        Row: {
+          created_at: string
+          empresa_cargo_id: string
+          id: string
+          permissao: string
+          permitido: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_cargo_id: string
+          id?: string
+          permissao: string
+          permitido?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_cargo_id?: string
+          id?: string
+          permissao?: string
+          permitido?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_cargo_permissoes_empresa_cargo_id_fkey"
+            columns: ["empresa_cargo_id"]
+            isOneToOne: false
+            referencedRelation: "empresa_cargos_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresa_cargos_config: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          editavel: boolean
+          empresa_id: number
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          editavel?: boolean
+          empresa_id: number
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          editavel?: boolean
+          empresa_id?: number
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_cargos_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa_config_financeira: {
         Row: {
           antecipacao_permitida: boolean
@@ -3904,6 +3977,19 @@ export type Database = {
         Args: { p_escopo: string }
         Returns: {
           descricao: string
+          nome: string
+        }[]
+      }
+      get_empresa_cargo_allowed_categories: {
+        Args: { p_empresa_cargo_id: string }
+        Returns: string[]
+      }
+      get_empresa_cargos: {
+        Args: { p_empresa_id: number }
+        Returns: {
+          descricao: string
+          editavel: boolean
+          id: string
           nome: string
         }[]
       }
