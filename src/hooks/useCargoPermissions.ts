@@ -20,8 +20,8 @@ export function useCargoPermissions(escopo: string | null, cargo: string | null)
     // Full-access roles bypass permission checks
     const fullAccessRoles: Record<string, string[]> = {
       torre: ['super_admin'],
-      embarcador: ['ADMIN'],
-      transportadora: ['ADMIN'],
+      embarcador: ['Administrador'],
+      transportadora: ['Administrador'],
     };
 
     if ((fullAccessRoles[escopo] || []).includes(cargo)) {

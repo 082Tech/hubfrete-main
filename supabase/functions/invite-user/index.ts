@@ -11,7 +11,7 @@ interface InviteRequest {
   company_type: "embarcador" | "transportadora";
   company_id: string;
   filial_id?: number;
-  role?: "ADMIN" | "OPERADOR";
+  role?: string;
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -133,7 +133,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Only ADMINs can invite
-    const isAdmin = inviterFiliais.some((uf: any) => uf.cargo_na_filial === "ADMIN");
+    const isAdmin = inviterFiliais.some((uf: any) => uf.cargo_na_filial === "Administrador");
     if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: "Apenas administradores podem convidar usuários" }),

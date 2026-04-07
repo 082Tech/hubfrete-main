@@ -201,7 +201,7 @@ export function EditUserDialog({
               <SelectContent>
                 {cargos.map((cargo) => (
                   <SelectItem key={cargo.id} value={cargo.nome}>
-                    {cargo.nome === 'ADMIN' ? 'Administrador' : cargo.nome}
+                    {cargo.nome}
                   </SelectItem>
                 ))}
               </SelectContent>

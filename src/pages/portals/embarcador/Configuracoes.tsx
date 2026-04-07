@@ -179,7 +179,7 @@ export default function Configuracoes() {
                     <Label htmlFor="cargo">Cargo</Label>
                     <Input
                       id="cargo"
-                      value={userData.cargo === 'ADMIN' ? 'Administrador' : 'Operador'}
+                      value={userData.cargo || 'Sem cargo'}
                       disabled
                     />
                   </div>

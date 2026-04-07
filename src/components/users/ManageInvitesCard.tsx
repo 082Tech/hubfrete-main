@@ -109,7 +109,7 @@ export function ManageInvitesCard({ invites, onRefresh }: ManageInvitesCardProps
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/20">
-                      {invite.role === 'ADMIN' ? 'Administrador' : 'Operador'}
+                      {invite.role}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       {formatDate(invite.created_at)}

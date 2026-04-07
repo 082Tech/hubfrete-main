@@ -4184,7 +4184,7 @@ export type Database = {
         | "bitruck"
       tipo_viagem: "urbano" | "rodovia"
       user_ai: "ai" | "user"
-      usuario_cargo: "ADMIN" | "OPERADOR"
+      usuario_cargo: "Administrador" | "OPERADOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4428,7 +4428,7 @@ export const Constants = {
       ],
       tipo_viagem: ["urbano", "rodovia"],
       user_ai: ["ai", "user"],
-      usuario_cargo: ["ADMIN", "OPERADOR"],
+      usuario_cargo: ["Administrador", "OPERADOR"],
     },
   },
 } as const
