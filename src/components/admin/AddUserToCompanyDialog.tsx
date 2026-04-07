@@ -259,7 +259,7 @@ export function AddUserToCompanyDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ADMIN">Administrador</SelectItem>
+                    <SelectItem value="Administrador">Administrador</SelectItem>
                     <SelectItem value="OPERADOR">Operador</SelectItem>
                   </SelectContent>
                 </Select>
@@ -337,7 +337,7 @@ export function AddUserToCompanyDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ADMIN">Administrador</SelectItem>
+                    <SelectItem value="Administrador">Administrador</SelectItem>
                     <SelectItem value="OPERADOR">Operador</SelectItem>
                   </SelectContent>
                 </Select>
