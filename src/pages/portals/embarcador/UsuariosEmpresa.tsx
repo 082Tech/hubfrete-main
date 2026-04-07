@@ -151,7 +151,7 @@ export default function UsuariosEmpresa() {
 
         return {
           ...u,
-          cargo: (u.cargo || cargoFromFilial) as UserRole | null,
+          cargo: (u.cargo || cargoFromFilial) as string | null,
           filiais: userFiliais,
         };
       });
@@ -185,7 +185,7 @@ export default function UsuariosEmpresa() {
       id: -(idx + 1),
       nome: inv.email.split('@')[0],
       email: inv.email,
-      cargo: inv.role as UserRole,
+      cargo: inv.role as string,
       auth_user_id: null,
       filiais: inv.filial_id 
         ? contextFiliais.filter(f => f.id === inv.filial_id).map(f => ({ id: f.id, nome: f.nome || 'Sem nome' }))
@@ -199,7 +199,7 @@ export default function UsuariosEmpresa() {
     allUsuarios.filter(usuario => 
       (usuario.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (usuario.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (usuario.cargo && roleLabels[usuario.cargo]?.toLowerCase().includes(searchTerm.toLowerCase()))
+      (usuario.cargo && getRoleLabel(usuario.cargo!)?.toLowerCase().includes(searchTerm.toLowerCase()))
     ), [allUsuarios, searchTerm]);
 
   const sortFunctions = useMemo(() => ({
@@ -299,8 +299,8 @@ export default function UsuariosEmpresa() {
         return (
           <td className="p-4 align-middle">
             {usuario.cargo && (
-              <Badge variant="outline" className={roleColors[usuario.cargo]}>
-                {roleLabels[usuario.cargo]}
+              <Badge variant="outline" className={getRoleColor(usuario.cargo!)}>
+                {getRoleLabel(usuario.cargo!)}
               </Badge>
             )}
           </td>
@@ -377,8 +377,8 @@ export default function UsuariosEmpresa() {
                   </Badge>
                 )}
                 {usuario.cargo && !usuario.isPending && (
-                  <Badge variant="outline" className={`${roleColors[usuario.cargo]} text-[10px]`}>
-                    {roleLabels[usuario.cargo]}
+                  <Badge variant="outline" className={`${getRoleColor(usuario.cargo!)} text-[10px]`}>
+                    {getRoleLabel(usuario.cargo!)}
                   </Badge>
                 )}
               </div>
