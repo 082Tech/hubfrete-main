@@ -67,6 +67,7 @@ import EmbarcadorDadosEmpresa from "./pages/portals/embarcador/DadosEmpresa";
 import EmbarcadorIntegracoes from "./pages/portals/embarcador/Integracoes";
 import Ajuda from "./pages/portals/shared/Ajuda";
 import Tutoriais from "./pages/portals/shared/Tutoriais";
+import CargosEmpresa from "./pages/portals/shared/CargosEmpresa";
 
 import TransportadoraDashboard from "./pages/portals/TransportadoraDashboard";
 import TransportadoraOfertas from "./pages/portals/transportadora/OfertasDisponiveis";
@@ -184,6 +185,7 @@ const App = () => {
                     <Route path="ajuda" element={<Ajuda />} />
                     <Route path="ajuda/tutoriais" element={<Tutoriais />} />
                     <Route path="configuracoes" element={<Configuracoes />} />
+                    <Route path="cargos" element={<CargosEmpresa />} />
                   </Route>
 
                   {/* Portal Transportadora - Nested routes with shared layout */}
@@ -209,6 +211,7 @@ const App = () => {
                     <Route path="ajuda" element={<Ajuda />} />
                     <Route path="ajuda/tutoriais" element={<Tutoriais />} />
                     <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />
+                    <Route path="cargos" element={<CargosEmpresa />} />
                   </Route>
 
                   {/* Portal Motorista: removido do site (apenas app) */}
