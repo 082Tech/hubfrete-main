@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export type UserType = 'embarcador' | 'transportadora' | 'motorista' | null;
-export type UserCargo = 'ADMIN' | 'OPERADOR' | null;
+export type UserCargo = 'Administrador' | 'OPERADOR' | string | null;
 
 export interface Filial {
   id: number;
@@ -225,7 +225,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       if (usuarioData) {
         // Set cargo (highest privilege if multiple)
         const cargos = usuarioData.usuarios_filiais?.map((uf: any) => uf.cargo_na_filial) || [];
-        const userCargo = cargos.includes('ADMIN') ? 'ADMIN' : cargos[0] as UserCargo;
+        const userCargo = cargos.includes('Administrador') ? 'Administrador' : cargos[0] as UserCargo;
         setCargo(userCargo);
 
         // Collect all accessible companies and filiais

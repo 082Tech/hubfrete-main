@@ -121,6 +121,7 @@ const transportadoraEmpresaSubmenu: MenuGroup = {
   label: 'Minha Empresa',
   subItems: [
     { icon: Building2, label: 'Dados da Empresa', href: '/transportadora/dados-empresa' },
+    { icon: Shield, label: 'Fiscal', href: '/transportadora/fiscal' },
     { icon: Plug, label: 'Integrações', href: '/transportadora/integracoes' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },
     { icon: Users, label: 'Usuários', href: '/transportadora/usuarios', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },

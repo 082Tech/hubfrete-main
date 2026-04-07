@@ -87,6 +87,7 @@ import TransportadoraNotificacoes from "./pages/portals/transportadora/Notificac
 import TransportadoraDadosEmpresa from "./pages/portals/transportadora/DadosEmpresa";
 import TransportadoraIntegracoes from "./pages/portals/transportadora/Integracoes";
 import TransportadoraOperacaoDiaria from "./pages/portals/transportadora/OperacaoDiaria";
+import TransportadoraFiscal from "./pages/portals/transportadora/Fiscal";
 import TransportadoraFinanceiro from "./pages/portals/transportadora/Financeiro";
 
 import EmbarcadorFinanceiro from "./pages/portals/embarcador/Financeiro";
@@ -208,6 +209,7 @@ const App = () => {
                     <Route path="financeiro" element={<TransportadoraFinanceiro />} />
                     <Route path="dados-empresa" element={<TransportadoraDadosEmpresa />} />
                     <Route path="integracoes" element={<TransportadoraIntegracoes />} />
+                    <Route path="fiscal" element={<TransportadoraFiscal />} />
                     <Route path="ajuda" element={<Ajuda />} />
                     <Route path="ajuda/tutoriais" element={<Tutoriais />} />
                     <Route path="configuracoes" element={<TransportadoraConfiguracoes />} />

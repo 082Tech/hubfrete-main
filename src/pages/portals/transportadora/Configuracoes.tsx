@@ -1,6 +1,5 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ConfigFiscalTab } from '@/components/fiscal/ConfigFiscalTab';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +18,7 @@ import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { ChangePasswordDialog } from '@/components/settings';
 
-type TabId = 'perfil' | 'fiscal' | 'notificacoes' | 'seguranca';
+type TabId = 'perfil' | 'notificacoes' | 'seguranca';
 
 interface Tab {
   id: TabId;
@@ -30,7 +29,6 @@ interface Tab {
 
 const tabs: Tab[] = [
   { id: 'perfil', label: 'Perfil', icon: User, description: 'Dados pessoais e aparência' },
-  { id: 'fiscal', label: 'Fiscal', icon: Shield, description: 'CT-e, ICMS e configurações fiscais' },
   { id: 'notificacoes', label: 'Notificações', icon: Bell, description: 'Alertas e canais' },
   { id: 'seguranca', label: 'Segurança', icon: Shield, description: 'Senha e autenticação' },
 ];
@@ -148,8 +146,6 @@ export default function Configuracoes() {
           </div>
         );
 
-      case 'fiscal':
-        return <ConfigFiscalTab />;
 
       case 'notificacoes':
         return (
