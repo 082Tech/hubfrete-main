@@ -1940,8 +1940,13 @@ export default function OperacaoDiaria() {
         normalizedStatus,
       });
 
-      const updates: Record<string, any> = {
-        status: normalizedStatus,
+      const updates: {
+        status: Database['public']['Enums']['status_entrega'];
+        updated_at: string;
+        entregue_em?: string;
+        coletado_em?: string;
+      } = {
+        status: normalizedStatus as Database['public']['Enums']['status_entrega'],
         updated_at: new Date().toISOString(),
       };
 
