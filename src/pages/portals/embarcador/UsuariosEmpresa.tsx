@@ -485,7 +485,7 @@ export default function UsuariosEmpresa() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 shrink-0">
           <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -508,19 +508,6 @@ export default function UsuariosEmpresa() {
                 <div>
                   <p className="text-2xl font-bold text-foreground">{stats.admins}</p>
                   <p className="text-xs text-muted-foreground">Administradores</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <UserCheck className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{stats.operadores}</p>
-                  <p className="text-xs text-muted-foreground">Operadores</p>
                 </div>
               </div>
             </CardContent>
