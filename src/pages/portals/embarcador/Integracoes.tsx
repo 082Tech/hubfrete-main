@@ -106,7 +106,7 @@ const transportadoraCategories: IntegrationCategory[] = [
 
 export default function Integracoes() {
   const { empresa } = useUserContext();
-  const isTransportadora = empresa?.tipo === 'transportadora';
+  const isTransportadora = empresa?.tipo === 'TRANSPORTADORA';
   const categories = isTransportadora ? transportadoraCategories : embarcadorCategories;
 
   return (
