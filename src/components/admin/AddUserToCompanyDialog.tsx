@@ -54,7 +54,7 @@ export function AddUserToCompanyDialog({
   
   // Invite form
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'ADMIN' | 'OPERADOR'>('OPERADOR');
+  const [inviteRole, setInviteRole] = useState<string>('OPERADOR');
   const [selectedFilialId, setSelectedFilialId] = useState<string>('');
 
   // Existing user form
@@ -65,7 +65,7 @@ export function AddUserToCompanyDialog({
     auth_user_id: string | null;
   }>>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [existingUserRole, setExistingUserRole] = useState<'ADMIN' | 'OPERADOR'>('OPERADOR');
+  const [existingUserRole, setExistingUserRole] = useState<string>('OPERADOR');
   const [existingFilialId, setExistingFilialId] = useState<string>('');
 
   useEffect(() => {
@@ -254,7 +254,7 @@ export function AddUserToCompanyDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Cargo *</Label>
-                <Select value={inviteRole} onValueChange={(v: 'ADMIN' | 'OPERADOR') => setInviteRole(v)}>
+                <Select value={inviteRole} onValueChange={(v: string) => setInviteRole(v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -332,7 +332,7 @@ export function AddUserToCompanyDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Cargo *</Label>
-                <Select value={existingUserRole} onValueChange={(v: 'ADMIN' | 'OPERADOR') => setExistingUserRole(v)}>
+                <Select value={existingUserRole} onValueChange={(v: string) => setExistingUserRole(v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
