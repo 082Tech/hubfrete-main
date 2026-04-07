@@ -75,6 +75,7 @@ import OfertasGoogleMap from '@/components/maps/OfertasGoogleMap';
 import RouteGoogleMap from '@/components/maps/RouteGoogleMap';
 import { createChatForEntrega } from '@/lib/chatService';
 import { ViagemSelector } from '@/components/viagens';
+import { savePlannedRoute } from '@/lib/savePlannedRoute';
 
 interface VeiculoRequisitos {
   tipos_veiculo?: string[];
@@ -828,6 +829,11 @@ export default function OfertasDisponiveis() {
           ? `Peso adicionado à carga ${data.entregaCodigo || ''}`
           : `Carga ${data.entregaCodigo || ''} gerada`,
       }).then(() => {});
+
+      // Recalculate planned route if cargo was added to an existing active trip
+      if (data.viagemId) {
+        savePlannedRoute(data.viagemId);
+      }
 
       if (data.merged) {
         toast.success(`Peso adicionado à entrega existente (${data.entregaCodigo || ''})`);
