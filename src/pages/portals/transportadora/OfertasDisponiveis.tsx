@@ -75,6 +75,7 @@ import OfertasGoogleMap from '@/components/maps/OfertasGoogleMap';
 import RouteGoogleMap from '@/components/maps/RouteGoogleMap';
 import { createChatForEntrega } from '@/lib/chatService';
 import { ViagemSelector } from '@/components/viagens';
+import { savePlannedRoute } from '@/lib/savePlannedRoute';
 
 interface VeiculoRequisitos {
   tipos_veiculo?: string[];
