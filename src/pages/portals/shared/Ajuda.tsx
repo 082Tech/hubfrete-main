@@ -15,6 +15,7 @@ import {
   Users, Headphones, Boxes, Container, Sparkles,
 } from 'lucide-react';
 import { AbrirChamadoDialog } from '@/components/chamados/AbrirChamadoDialog';
+import { OnboardingGuide } from '@/components/onboarding/OnboardingGuide';
 
 interface FAQItem {
   question: string;
