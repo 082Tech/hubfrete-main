@@ -191,6 +191,8 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   const menuItems = allMenuItems;
   const config = portalConfig[userType];
   const PortalIcon = config.icon;
+  const { pendingCount: onboardingPending } = useOnboardingChecklist();
+  const PortalIcon = config.icon;
 
   // Check if any submenu item is active
   const isCargasSubmenuActive = cargasSubmenu.subItems.some(
