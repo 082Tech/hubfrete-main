@@ -291,7 +291,7 @@ export function FinanceCalendar({
 
                     {dot && (
                       <div className="flex items-center gap-0.5">
-                        {dot.hasVencido && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
+                        {dot.hasVencido && <span className="w-1 h-1 rounded-full bg-destructive" />}
                         {dot.hasPendente && <span className="w-1.5 h-1.5 rounded-full bg-chart-4" />}
                         {dot.hasPago && <span className="w-1.5 h-1.5 rounded-full bg-chart-2" />}
                         {dot.hasAntecipado && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
