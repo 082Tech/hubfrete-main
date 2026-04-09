@@ -1,14 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, BarChart3, DollarSign, Clock, CheckCircle } from 'lucide-react';
+import { Calendar, BarChart3, DollarSign, Clock, CheckCircle, CreditCard } from 'lucide-react';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { FinanceCalendar } from '@/components/financeiro/FinanceCalendar';
 import { AnnualBarChart } from '@/components/financeiro/AnnualBarChart';
+import { PagamentosTab } from '@/components/financeiro/PagamentosTab';
 import { formatCurrency } from '@/lib/reportExport';
 
 export default function EmbarcadorFinanceiro() {
@@ -119,6 +120,9 @@ export default function EmbarcadorFinanceiro() {
           <TabsTrigger value="calendario" className="gap-2">
             <Calendar className="w-4 h-4" /> Calendário
           </TabsTrigger>
+          <TabsTrigger value="pagamentos" className="gap-2">
+            <CreditCard className="w-4 h-4" /> Pagamentos
+          </TabsTrigger>
           <TabsTrigger value="anual" className="gap-2">
             <BarChart3 className="w-4 h-4" /> Visão Anual
           </TabsTrigger>
@@ -131,6 +135,10 @@ export default function EmbarcadorFinanceiro() {
             onMonthChange={setCurrentMonth}
             perspective="embarcador"
           />
+        </TabsContent>
+
+        <TabsContent value="pagamentos" className="mt-0">
+          {empresa?.id && <PagamentosTab empresaId={empresa.id} />}
         </TabsContent>
 
         <TabsContent value="anual" className="mt-0">
