@@ -28,9 +28,6 @@ export default function DadosEmpresa() {
     };
     fetchData();
   }, [empresa?.id]);
-    };
-    fetchData();
-  }, [empresa?.id]);
 
   if (loading) {
     return (
