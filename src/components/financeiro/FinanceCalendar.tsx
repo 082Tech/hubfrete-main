@@ -99,8 +99,9 @@ export function FinanceCalendar({
     const hasPago = items.some(r => r.status === 'pago');
     const hasPendente = items.some(r => r.status === 'pendente');
     const hasAntecipado = !isEmbarcador && items.some(r => r.antecipado);
+    const hasVencido = isEmbarcador && items.some(r => r.status === 'pendente' && r.data_vencimento && isBefore(new Date(r.data_vencimento), today));
     const total = items.reduce((s, r) => s + Number(isEmbarcador ? r.valor_frete : r.valor_liquido), 0);
-    return { count: items.length, hasPago, hasPendente, hasAntecipado, total };
+    return { count: items.length, hasPago, hasPendente: hasPendente && !hasVencido, hasAntecipado, hasVencido, total };
   };
 
   const nomeEmpresa = (emp: { nome: string | null; nome_fantasia: string | null } | null | undefined) =>
