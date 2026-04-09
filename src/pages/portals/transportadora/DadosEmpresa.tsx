@@ -2,40 +2,32 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Truck, MapPin, Plus } from 'lucide-react';
+import { Truck, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Filial = Tables<'filiais'>;
 
 export default function DadosEmpresa() {
   const { companyInfo, empresa } = useUserContext();
   const [loading, setLoading] = useState(true);
-  const [filiais, setFiliais] = useState<Filial[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        if (empresa?.id) {
-          const { data: filiaisData } = await supabase
-            .from('filiais')
-            .select('*')
-            .eq('empresa_id', empresa.id)
-            .order('is_matriz', { ascending: false });
-          setFiliais(filiaisData || []);
-        }
+        // Just validate empresa exists
+        if (!empresa?.id) return;
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
         toast.error('Erro ao carregar dados da empresa');
       } finally {
         setLoading(false);
       }
+    };
+    fetchData();
+  }, [empresa?.id]);
     };
     fetchData();
   }, [empresa?.id]);
