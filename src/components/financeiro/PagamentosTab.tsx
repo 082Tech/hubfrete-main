@@ -215,7 +215,7 @@ export function PagamentosTab({ empresaId }: PagamentosTabProps) {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Card className={cn("border-border", vencidos.length > 0 && "border-destructive/30")}>
           <CardContent className="p-3 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
@@ -235,6 +235,17 @@ export function PagamentosTab({ empresaId }: PagamentosTabProps) {
             <div>
               <p className="text-base font-bold text-foreground">{formatCurrency(totalAVencer)}</p>
               <p className="text-[10px] text-muted-foreground">{aVencer.length} a vencer</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-chart-2/10 flex items-center justify-center shrink-0">
+              <CheckCircle className="w-4 h-4 text-chart-2" />
+            </div>
+            <div>
+              <p className="text-base font-bold text-chart-2">{formatCurrency(totalPagos)}</p>
+              <p className="text-[10px] text-muted-foreground">{pagos.length} pago{pagos.length !== 1 ? 's' : ''}</p>
             </div>
           </CardContent>
         </Card>
