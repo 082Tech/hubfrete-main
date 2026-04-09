@@ -512,7 +512,7 @@ export default function Financeiro() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-end">
-        <MonthYearPicker month={selectedMonth} year={selectedYear} onChangeMonth={setSelectedMonth} onChangeYear={setSelectedYear} />
+        <DateRangePicker dateRange={dateRange} onDateRangeChange={(r) => { setDateRange(r); setPage(1); }} />
         <div className="w-32">
           <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Status</Label>
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
@@ -579,7 +579,7 @@ export default function Financeiro() {
         </div>
         <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-xs font-medium">
           <DollarSign className="w-3.5 h-3.5" />
-          {format(new Date(selectedYear, selectedMonth), 'MMMM yyyy', { locale: ptBR })}
+          {format(dateRange.start, 'dd/MM', { locale: ptBR })} – {format(dateRange.end, 'dd/MM/yyyy', { locale: ptBR })}
         </Badge>
       </div>
 
