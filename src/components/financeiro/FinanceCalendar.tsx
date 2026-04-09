@@ -307,6 +307,12 @@ export function FinanceCalendar({
 
             {/* Legend */}
             <div className="flex items-center gap-4 px-3 py-1.5 border-t border-border bg-muted/20">
+              {isEmbarcador && (
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
+                  Vencido
+                </div>
+              )}
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                 <span className="w-1.5 h-1.5 rounded-full bg-chart-4" />
                 Pendente
