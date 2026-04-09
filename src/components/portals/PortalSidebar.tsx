@@ -32,6 +32,7 @@ import { useUserContext, type UserType } from '@/hooks/useUserContext';
 import { useTheme } from 'next-themes';
 import { useNotificacoesContext } from '@/contexts/NotificacoesContext';
 import { useCargoPermissions } from '@/hooks/useCargoPermissions';
+import { useOnboardingChecklist } from '@/hooks/useOnboardingChecklist';
 
 // Maps menu item hrefs to their required permission categories
 // Items not listed are always visible (Home, Assistente, Ajuda)
@@ -190,6 +191,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
   const menuItems = allMenuItems;
   const config = portalConfig[userType];
   const PortalIcon = config.icon;
+  const { pendingCount: onboardingPending } = useOnboardingChecklist();
 
   // Check if any submenu item is active
   const isCargasSubmenuActive = cargasSubmenu.subItems.some(
@@ -942,7 +944,14 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                       }`}
                   >
                     <ajudaItem.icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span className="font-medium">{ajudaItem.label}</span>}
+                    {!collapsed && (
+                      <span className="font-medium flex-1">{ajudaItem.label}</span>
+                    )}
+                    {onboardingPending > 0 && (
+                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground">
+                        {onboardingPending}
+                      </span>
+                    )}
                   </Link>
                 );
                 if (collapsed) {
@@ -1114,7 +1123,14 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                       }`}
                   >
                     <ajudaItem.icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span className="font-medium">{ajudaItem.label}</span>}
+                    {!collapsed && (
+                      <span className="font-medium flex-1">{ajudaItem.label}</span>
+                    )}
+                    {onboardingPending > 0 && (
+                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground">
+                        {onboardingPending}
+                      </span>
+                    )}
                   </Link>
                 );
                 if (collapsed) {
