@@ -5,7 +5,7 @@ import {
   User, Users, MapPin, Calendar, BarChart3, Bell, ChevronDown, Check,
   Sparkles, Loader2, ChevronLeft, ChevronRight, Home, History, Send,
   Route, Pin, Building, MessageSquare, MoreVertical, ArrowRightLeft,
-  Link2, Container, Boxes, DollarSign, Plug, HelpCircle, Shield,
+  Link2, Container, Boxes, DollarSign, Plug, HelpCircle, Shield, Landmark,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -121,6 +121,7 @@ const transportadoraEmpresaSubmenu: MenuGroup = {
   label: 'Minha Empresa',
   subItems: [
     { icon: Building2, label: 'Dados da Empresa', href: '/transportadora/dados-empresa' },
+    { icon: Landmark, label: 'Conta Bancária', href: '/transportadora/conta-bancaria' },
     { icon: Shield, label: 'Fiscal', href: '/transportadora/fiscal' },
     { icon: Plug, label: 'Integrações', href: '/transportadora/integracoes' },
     { icon: Building, label: 'Gerenciar Filiais', href: '/transportadora/filiais', adminOnly: true } as SubMenuItem & { adminOnly?: boolean },

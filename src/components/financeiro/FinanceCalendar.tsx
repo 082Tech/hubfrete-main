@@ -3,7 +3,8 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Zap, DollarSign } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap, DollarSign, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, addMonths, subMonths, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/reportExport';
@@ -52,6 +53,7 @@ export function FinanceCalendar({
 }: FinanceCalendarProps) {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [page, setPage] = useState(1);
+  const navigate = useNavigate();
 
   const isEmbarcador = perspective === 'embarcador';
 
@@ -113,9 +115,11 @@ export function FinanceCalendar({
       );
     }
 
+    const dayTotal = selectedItems.reduce((s, r) => s + Number(isEmbarcador ? r.valor_frete : r.valor_liquido), 0);
+
     return (
       <div className="p-4 flex flex-col h-full">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-1">
           <p className="text-sm font-semibold text-foreground">
             {format(selectedDay, "dd 'de' MMMM", { locale: ptBR })}
           </p>
@@ -123,6 +127,9 @@ export function FinanceCalendar({
             {selectedItems.length} {selectedItems.length === 1 ? 'registro' : 'registros'}
           </Badge>
         </div>
+        {selectedItems.length > 0 && (
+          <p className="text-lg font-bold text-foreground mb-3">{formatCurrency(dayTotal)}</p>
+        )}
 
         {selectedItems.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">Nenhum registro neste dia</p>
@@ -154,12 +161,26 @@ export function FinanceCalendar({
                         {r.entregas?.cargas?.codigo && ` · ${r.entregas.cargas.codigo}`}
                       </p>
                     </div>
-                    <div className="text-right ml-2 shrink-0">
-                      <p className="text-sm font-bold">
-                        {formatCurrency(isEmbarcador ? r.valor_frete : r.valor_liquido)}
-                      </p>
-                      {!isEmbarcador && r.antecipado && r.valor_taxa_antecipacao && Number(r.valor_taxa_antecipacao) > 0 && (
-                        <p className="text-[10px] text-chart-4">taxa: {formatCurrency(Number(r.valor_taxa_antecipacao))}</p>
+                    <div className="text-right ml-2 shrink-0 flex items-center gap-1.5">
+                      <div>
+                        <p className="text-sm font-bold">
+                          {formatCurrency(isEmbarcador ? r.valor_frete : r.valor_liquido)}
+                        </p>
+                        {!isEmbarcador && r.antecipado && r.valor_taxa_antecipacao && Number(r.valor_taxa_antecipacao) > 0 && (
+                          <p className="text-[10px] text-chart-4">taxa: {formatCurrency(Number(r.valor_taxa_antecipacao))}</p>
+                        )}
+                      </div>
+                      {r.entregas?.cargas?.codigo && (
+                        <button
+                          onClick={() => {
+                            const basePath = isEmbarcador ? '/embarcador/historico' : '/transportadora/historico';
+                            navigate(`${basePath}?carga=${r.entregas.cargas.codigo}`);
+                          }}
+                          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                          title="Ver detalhes da carga"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
                       )}
                     </div>
                   </div>
