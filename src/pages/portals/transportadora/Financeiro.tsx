@@ -10,6 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Landmark, Save, Zap, Calendar, BarChart3, AlertTriangle,
   Clock, CheckCircle, TrendingUp, XCircle, Loader2, ListChecks,
