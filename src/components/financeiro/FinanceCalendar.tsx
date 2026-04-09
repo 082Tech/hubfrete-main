@@ -148,12 +148,15 @@ export function FinanceCalendar({
                           'text-[9px] px-1 py-0',
                           r.status === 'pago' && 'bg-chart-2 text-white',
                           !isEmbarcador && r.antecipado && r.status !== 'pago' && 'bg-primary text-primary-foreground',
+                          isEmbarcador && r.status === 'pendente' && r.data_vencimento && isBefore(new Date(r.data_vencimento), today) && 'bg-destructive text-destructive-foreground',
                         )}>
                           {r.status === 'pago'
                             ? (isEmbarcador ? 'Pago' : 'Recebido')
                             : (!isEmbarcador && r.antecipado)
                               ? 'Antecipado'
-                              : (isEmbarcador ? 'A Pagar' : 'Pendente')}
+                              : (isEmbarcador && r.data_vencimento && isBefore(new Date(r.data_vencimento), today))
+                                ? 'Vencido'
+                                : (isEmbarcador ? 'A Pagar' : 'Pendente')}
                         </Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
