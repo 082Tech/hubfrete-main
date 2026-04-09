@@ -535,30 +535,36 @@ export default function Financeiro() {
 
       {/* Table */}
       <Card className="border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto max-h-[560px] overflow-y-auto">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[14%]" />
+              <col className="w-[18%]" />
+              <col className="w-[12%]" />
+              {!isRecebiveis && <col className="w-[10%]" />}
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+              <col className="w-[10%]" />
+              <col className="w-[12%]" />
+            </colgroup>
             {renderTableHead()}
+            <tbody>
+              {isLoading ? (
+                [...Array(6)].map((_, i) => (
+                  <tr key={i}><td colSpan={isRecebiveis ? 7 : 8} className="p-3"><Skeleton className="h-10 w-full" /></td></tr>
+                ))
+              ) : pagedItems.length === 0 ? (
+                <tr>
+                  <td colSpan={isRecebiveis ? 7 : 8} className="text-center text-muted-foreground py-16">
+                    <DollarSign className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                    <p>Nenhum registro encontrado no período</p>
+                  </td>
+                </tr>
+              ) : (
+                pagedItems.map(renderTableRow)
+              )}
+            </tbody>
           </table>
-          <div className="max-h-[520px] overflow-y-auto">
-            <table className="w-full text-sm">
-              <tbody>
-                {isLoading ? (
-                  [...Array(6)].map((_, i) => (
-                    <tr key={i}><td colSpan={9} className="p-3"><Skeleton className="h-10 w-full" /></td></tr>
-                  ))
-                ) : pagedItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="text-center text-muted-foreground py-16">
-                      <DollarSign className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                      <p>Nenhum registro encontrado no período</p>
-                    </td>
-                  </tr>
-                ) : (
-                  pagedItems.map(renderTableRow)
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
         {filtered.length > ITEMS_PER_PAGE && (
           <div className="border-t border-border">
