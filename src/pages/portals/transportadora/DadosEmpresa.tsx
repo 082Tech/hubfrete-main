@@ -2,34 +2,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Truck, MapPin, Plus } from 'lucide-react';
+import { Truck, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserContext } from '@/hooks/useUserContext';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Filial = Tables<'filiais'>;
 
 export default function DadosEmpresa() {
   const { companyInfo, empresa } = useUserContext();
   const [loading, setLoading] = useState(true);
-  const [filiais, setFiliais] = useState<Filial[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        if (empresa?.id) {
-          const { data: filiaisData } = await supabase
-            .from('filiais')
-            .select('*')
-            .eq('empresa_id', empresa.id)
-            .order('is_matriz', { ascending: false });
-          setFiliais(filiaisData || []);
-        }
+        // Just validate empresa exists
+        if (!empresa?.id) return;
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
         toast.error('Erro ao carregar dados da empresa');
@@ -143,51 +132,6 @@ export default function DadosEmpresa() {
           </CardContent>
         </Card>
 
-        {/* Bases/Filiais */}
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
-              Bases Operacionais
-            </CardTitle>
-            <CardDescription>
-              {filiais.length > 0
-                ? `${filiais.length} base(s) operacional(is) cadastrada(s)`
-                : 'Nenhuma base operacional cadastrada'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {filiais.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">Nenhuma base operacional encontrada.</p>
-              ) : (
-                filiais.map((filial) => (
-                  <div key={filial.id} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${filial.ativa ? 'bg-primary/10' : 'bg-muted'}`}>
-                        <MapPin className={`w-5 h-5 ${filial.ativa ? 'text-primary' : 'text-muted-foreground'}`} />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {filial.is_matriz ? '🏢 ' : ''}{filial.nome || 'Base sem nome'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {[filial.endereco, filial.cidade, filial.estado].filter(Boolean).join(' - ') || 'Endereço não informado'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {filial.is_matriz && <Badge variant="outline">Sede</Badge>}
-                      <Badge variant={filial.ativa ? 'default' : 'secondary'}>
-                        {filial.ativa ? 'Ativa' : 'Inativa'}
-                      </Badge>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
