@@ -73,7 +73,7 @@ export function PagamentosTab({ empresaId }: PagamentosTabProps) {
   );
 
   const totalVencidos = vencidos.reduce((s, r) => s + Number(r.valor_frete), 0);
-  const totalAVencer = aVencer.reduce((s, r) => s + Number(r.valor_frete), 0);
+  const totalPagos = pagos.reduce((s, r) => s + Number(r.valor_frete), 0);
 
   const selectedTotal = useMemo(() => {
     return pendentes.filter(r => selectedIds.has(r.id)).reduce((s, r) => s + Number(r.valor_frete), 0);
