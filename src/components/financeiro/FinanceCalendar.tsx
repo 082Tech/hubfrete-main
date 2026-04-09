@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Zap, DollarSign, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, addMonths, subMonths, isToday } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, addMonths, subMonths, isToday, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/reportExport';
 
@@ -54,6 +54,7 @@ export function FinanceCalendar({
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
+  const today = startOfDay(new Date());
 
   const isEmbarcador = perspective === 'embarcador';
 
@@ -98,8 +99,9 @@ export function FinanceCalendar({
     const hasPago = items.some(r => r.status === 'pago');
     const hasPendente = items.some(r => r.status === 'pendente');
     const hasAntecipado = !isEmbarcador && items.some(r => r.antecipado);
+    const hasVencido = isEmbarcador && items.some(r => r.status === 'pendente' && r.data_vencimento && isBefore(new Date(r.data_vencimento), today));
     const total = items.reduce((s, r) => s + Number(isEmbarcador ? r.valor_frete : r.valor_liquido), 0);
-    return { count: items.length, hasPago, hasPendente, hasAntecipado, total };
+    return { count: items.length, hasPago, hasPendente: hasPendente && !hasVencido, hasAntecipado, hasVencido, total };
   };
 
   const nomeEmpresa = (emp: { nome: string | null; nome_fantasia: string | null } | null | undefined) =>
@@ -146,12 +148,15 @@ export function FinanceCalendar({
                           'text-[9px] px-1 py-0',
                           r.status === 'pago' && 'bg-chart-2 text-white',
                           !isEmbarcador && r.antecipado && r.status !== 'pago' && 'bg-primary text-primary-foreground',
+                          isEmbarcador && r.status === 'pendente' && r.data_vencimento && isBefore(new Date(r.data_vencimento), today) && 'bg-destructive text-destructive-foreground',
                         )}>
                           {r.status === 'pago'
                             ? (isEmbarcador ? 'Pago' : 'Recebido')
                             : (!isEmbarcador && r.antecipado)
                               ? 'Antecipado'
-                              : (isEmbarcador ? 'A Pagar' : 'Pendente')}
+                              : (isEmbarcador && r.data_vencimento && isBefore(new Date(r.data_vencimento), today))
+                                ? 'Vencido'
+                                : (isEmbarcador ? 'A Pagar' : 'Pendente')}
                         </Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -286,6 +291,7 @@ export function FinanceCalendar({
 
                     {dot && (
                       <div className="flex items-center gap-0.5">
+                        {dot.hasVencido && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
                         {dot.hasPendente && <span className="w-1.5 h-1.5 rounded-full bg-chart-4" />}
                         {dot.hasPago && <span className="w-1.5 h-1.5 rounded-full bg-chart-2" />}
                         {dot.hasAntecipado && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
@@ -304,6 +310,12 @@ export function FinanceCalendar({
 
             {/* Legend */}
             <div className="flex items-center gap-4 px-3 py-1.5 border-t border-border bg-muted/20">
+              {isEmbarcador && (
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
+                  Vencido
+                </div>
+              )}
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                 <span className="w-1.5 h-1.5 rounded-full bg-chart-4" />
                 Pendente
