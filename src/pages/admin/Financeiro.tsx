@@ -23,12 +23,12 @@ import {
   FileText, ChevronDown, ChevronRight, XCircle, Loader2,
 } from 'lucide-react';
 import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
-import { format, differenceInDays, startOfMonth, endOfMonth } from 'date-fns';
+import { format, differenceInDays, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
 import { Pagination } from '@/components/admin/Pagination';
-import { MonthYearPicker } from '@/components/ui/month-year-picker';
+import { DateRangePicker, getDefaultDateRange } from '@/components/relatorios/DateRangePicker';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -86,9 +86,7 @@ type TabType = 'recebiveis' | 'pgt_transportadoras' | 'pgt_autonomos' | 'antecip
 export default function Financeiro() {
   const queryClient = useQueryClient();
   const { allowed: canBaixa } = useAdminPermission('financeiro.baixa');
-  const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const [activeTab, setActiveTab] = useState<TabType>('recebiveis');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -111,11 +109,8 @@ export default function Financeiro() {
   const [rejeicaoDialog, setRejeicaoDialog] = useState<any | null>(null);
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
 
-  const dateFrom = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
-  const dateTo = (() => {
-    const d = new Date(selectedYear, selectedMonth + 1, 0);
-    return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
+  const dateFrom = format(dateRange.start, 'yyyy-MM-dd');
+  const dateTo = format(dateRange.end, 'yyyy-MM-dd');
 
   const isFinancialTab = activeTab !== 'config' && activeTab !== 'antecipacoes';
 
@@ -181,7 +176,7 @@ export default function Financeiro() {
   });
 
   const { data: allRecebiveis, isLoading } = useQuery({
-    queryKey: ['admin-recebiveis', selectedMonth, selectedYear, statusFilter],
+    queryKey: ['admin-recebiveis', dateFrom, dateTo, statusFilter],
     queryFn: async () => {
       let query = supabase
         .from('financeiro_entregas')
