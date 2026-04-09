@@ -32,6 +32,7 @@ import { useUserContext, type UserType } from '@/hooks/useUserContext';
 import { useTheme } from 'next-themes';
 import { useNotificacoesContext } from '@/contexts/NotificacoesContext';
 import { useCargoPermissions } from '@/hooks/useCargoPermissions';
+import { useOnboardingChecklist } from '@/hooks/useOnboardingChecklist';
 
 // Maps menu item hrefs to their required permission categories
 // Items not listed are always visible (Home, Assistente, Ajuda)
