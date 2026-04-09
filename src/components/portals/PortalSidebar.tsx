@@ -1116,7 +1116,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                 const linkContent = (
                   <Link
                     to={ajudaItem.href}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
+                    className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''
                       } ${isActive
                         ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                         : `text-sidebar-foreground hover:bg-sidebar-accent ${darkMode ? 'hover:text-primary-foreground' : 'hover:text-primary'}`
@@ -1127,7 +1127,7 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                       <span className="font-medium flex-1">{ajudaItem.label}</span>
                     )}
                     {onboardingPending > 0 && (
-                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground">
+                      <span className={`flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground ${collapsed ? 'absolute -top-1 -right-1 min-w-[16px] h-[16px]' : ''}`}>
                         {onboardingPending}
                       </span>
                     )}
