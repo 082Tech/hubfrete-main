@@ -23,12 +23,12 @@ import {
   FileText, ChevronDown, ChevronRight, XCircle, Loader2,
 } from 'lucide-react';
 import { DadosBancariosDialog } from '@/components/admin/DadosBancariosDialog';
-import { format, differenceInDays, startOfMonth, endOfMonth } from 'date-fns';
+import { format, differenceInDays, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/reportExport';
 import { Pagination } from '@/components/admin/Pagination';
-import { MonthYearPicker } from '@/components/ui/month-year-picker';
+import { DateRangePicker, getDefaultDateRange } from '@/components/relatorios/DateRangePicker';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -86,9 +86,7 @@ type TabType = 'recebiveis' | 'pgt_transportadoras' | 'pgt_autonomos' | 'antecip
 export default function Financeiro() {
   const queryClient = useQueryClient();
   const { allowed: canBaixa } = useAdminPermission('financeiro.baixa');
-  const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const [activeTab, setActiveTab] = useState<TabType>('recebiveis');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -111,11 +109,8 @@ export default function Financeiro() {
   const [rejeicaoDialog, setRejeicaoDialog] = useState<any | null>(null);
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
 
-  const dateFrom = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
-  const dateTo = (() => {
-    const d = new Date(selectedYear, selectedMonth + 1, 0);
-    return `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
+  const dateFrom = format(dateRange.start, 'yyyy-MM-dd');
+  const dateTo = format(dateRange.end, 'yyyy-MM-dd');
 
   const isFinancialTab = activeTab !== 'config' && activeTab !== 'antecipacoes';
 
@@ -181,7 +176,7 @@ export default function Financeiro() {
   });
 
   const { data: allRecebiveis, isLoading } = useQuery({
-    queryKey: ['admin-recebiveis', selectedMonth, selectedYear, statusFilter],
+    queryKey: ['admin-recebiveis', dateFrom, dateTo, statusFilter],
     queryFn: async () => {
       let query = supabase
         .from('financeiro_entregas')
@@ -517,7 +512,7 @@ export default function Financeiro() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-end">
-        <MonthYearPicker month={selectedMonth} year={selectedYear} onChangeMonth={setSelectedMonth} onChangeYear={setSelectedYear} />
+        <DateRangePicker dateRange={dateRange} onDateRangeChange={(r) => { setDateRange(r); setPage(1); }} />
         <div className="w-32">
           <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Status</Label>
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
@@ -540,30 +535,36 @@ export default function Financeiro() {
 
       {/* Table */}
       <Card className="border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto max-h-[560px] overflow-y-auto">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[14%]" />
+              <col className="w-[18%]" />
+              <col className="w-[12%]" />
+              {!isRecebiveis && <col className="w-[10%]" />}
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+              <col className="w-[10%]" />
+              <col className="w-[12%]" />
+            </colgroup>
             {renderTableHead()}
+            <tbody>
+              {isLoading ? (
+                [...Array(6)].map((_, i) => (
+                  <tr key={i}><td colSpan={isRecebiveis ? 7 : 8} className="p-3"><Skeleton className="h-10 w-full" /></td></tr>
+                ))
+              ) : pagedItems.length === 0 ? (
+                <tr>
+                  <td colSpan={isRecebiveis ? 7 : 8} className="text-center text-muted-foreground py-16">
+                    <DollarSign className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                    <p>Nenhum registro encontrado no período</p>
+                  </td>
+                </tr>
+              ) : (
+                pagedItems.map(renderTableRow)
+              )}
+            </tbody>
           </table>
-          <div className="max-h-[520px] overflow-y-auto">
-            <table className="w-full text-sm">
-              <tbody>
-                {isLoading ? (
-                  [...Array(6)].map((_, i) => (
-                    <tr key={i}><td colSpan={9} className="p-3"><Skeleton className="h-10 w-full" /></td></tr>
-                  ))
-                ) : pagedItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="text-center text-muted-foreground py-16">
-                      <DollarSign className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                      <p>Nenhum registro encontrado no período</p>
-                    </td>
-                  </tr>
-                ) : (
-                  pagedItems.map(renderTableRow)
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
         {filtered.length > ITEMS_PER_PAGE && (
           <div className="border-t border-border">
@@ -584,7 +585,7 @@ export default function Financeiro() {
         </div>
         <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-xs font-medium">
           <DollarSign className="w-3.5 h-3.5" />
-          {format(new Date(selectedYear, selectedMonth), 'MMMM yyyy', { locale: ptBR })}
+          {format(dateRange.start, 'dd/MM', { locale: ptBR })} – {format(dateRange.end, 'dd/MM/yyyy', { locale: ptBR })}
         </Badge>
       </div>
 
