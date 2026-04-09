@@ -54,6 +54,7 @@ export function FinanceCalendar({
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
+  const today = startOfDay(new Date());
 
   const isEmbarcador = perspective === 'embarcador';
 
