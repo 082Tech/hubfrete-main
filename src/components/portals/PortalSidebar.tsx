@@ -944,7 +944,14 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                       }`}
                   >
                     <ajudaItem.icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span className="font-medium">{ajudaItem.label}</span>}
+                    {!collapsed && (
+                      <span className="font-medium flex-1">{ajudaItem.label}</span>
+                    )}
+                    {onboardingPending > 0 && (
+                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground">
+                        {onboardingPending}
+                      </span>
+                    )}
                   </Link>
                 );
                 if (collapsed) {
@@ -1116,7 +1123,14 @@ export function PortalSidebar({ userType, collapsed = false, onToggleCollapse, w
                       }`}
                   >
                     <ajudaItem.icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span className="font-medium">{ajudaItem.label}</span>}
+                    {!collapsed && (
+                      <span className="font-medium flex-1">{ajudaItem.label}</span>
+                    )}
+                    {onboardingPending > 0 && (
+                      <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground">
+                        {onboardingPending}
+                      </span>
+                    )}
                   </Link>
                 );
                 if (collapsed) {
