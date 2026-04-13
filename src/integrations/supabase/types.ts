@@ -468,6 +468,71 @@ export type Database = {
           },
         ]
       }
+      cargo_permissoes: {
+        Row: {
+          cargo_id: string
+          chave: string
+          created_at: string | null
+          habilitado: boolean | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          cargo_id: string
+          chave: string
+          created_at?: string | null
+          habilitado?: boolean | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          cargo_id?: string
+          chave?: string
+          created_at?: string | null
+          habilitado?: boolean | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cargo_permissoes_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "cargos_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cargos_config: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          escopo: string | null
+          id: string
+          nome: string
+          protegido: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          escopo?: string | null
+          id?: string
+          nome: string
+          protegido?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          escopo?: string | null
+          id?: string
+          nome?: string
+          protegido?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       carrocerias: {
         Row: {
           ano: number | null
@@ -1197,6 +1262,79 @@ export type Database = {
           usos_realizados?: number
         }
         Relationships: []
+      }
+      empresa_cargo_permissoes: {
+        Row: {
+          cargo_id: string
+          chave: string
+          created_at: string | null
+          habilitado: boolean | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          cargo_id: string
+          chave: string
+          created_at?: string | null
+          habilitado?: boolean | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          cargo_id?: string
+          chave?: string
+          created_at?: string | null
+          habilitado?: boolean | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_cargo_permissoes_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "empresa_cargos_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresa_cargos_config: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          empresa_id: number
+          id: string
+          nome: string
+          protegido: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id: number
+          id?: string
+          nome: string
+          protegido?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: number
+          id?: string
+          nome?: string
+          protegido?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_cargos_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       empresa_config_financeira: {
         Row: {
@@ -3504,6 +3642,10 @@ export type Database = {
         }
         Returns: Json
       }
+      cancelar_viagem_completa: {
+        Args: { p_viagem_id: string }
+        Returns: undefined
+      }
       create_chat_for_entrega: {
         Args: { p_entrega_id: string }
         Returns: string
@@ -3526,6 +3668,7 @@ export type Database = {
         }
         Returns: string
       }
+      expirar_cargas_vencidas: { Args: never; Returns: undefined }
       finalizar_entrega_e_verificar_viagem: {
         Args: {
           p_documento_recebedor?: string
@@ -3540,6 +3683,24 @@ export type Database = {
       get_admin_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["admin_role"]
+      }
+      get_cargos_for_scope: {
+        Args: { p_escopo: string }
+        Returns: {
+          descricao: string
+          id: string
+          nome: string
+          protegido: boolean
+        }[]
+      }
+      get_empresa_cargos: {
+        Args: { p_empresa_id: number }
+        Returns: {
+          descricao: string
+          id: string
+          nome: string
+          protegido: boolean
+        }[]
       }
       get_public_tracking_info: {
         Args: { _tracking_code: string }
@@ -3685,7 +3846,7 @@ export type Database = {
         | "bitruck"
       tipo_viagem: "urbano" | "rodovia"
       user_ai: "ai" | "user"
-      usuario_cargo: "ADMIN" | "OPERADOR"
+      usuario_cargo: "Administrador" | "OPERADOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3929,7 +4090,7 @@ export const Constants = {
       ],
       tipo_viagem: ["urbano", "rodovia"],
       user_ai: ["ai", "user"],
-      usuario_cargo: ["ADMIN", "OPERADOR"],
+      usuario_cargo: ["Administrador", "OPERADOR"],
     },
   },
 } as const
