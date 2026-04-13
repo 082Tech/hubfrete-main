@@ -374,6 +374,7 @@ function DetailPanel({
   const [existingCtes, setExistingCtes] = useState<any[]>([]);
   const [unlinkedNfes, setUnlinkedNfes] = useState<any[]>([]);
   const [docsRefreshKey, setDocsRefreshKey] = useState(0);
+  const [gerandoCte, setGerandoCte] = useState(false);
 
   // Buscar status da viagem caso não venha nas props
   const { data: fetchedViagemStatus } = useQuery({
