@@ -108,7 +108,7 @@ export async function savePlannedRoute(viagemId: string): Promise<void> {
       return;
     }
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('viagens')
       .update({
         rota_planejada_polyline: result.polyline,

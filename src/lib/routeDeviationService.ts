@@ -50,9 +50,9 @@ export async function processRouteDeviationAudit(
         tracked_at: dp.tracked_at,
       }));
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('desvio_auditoria')
-        .insert(batch as any);
+        .insert(batch);
 
       if (error) throw error;
     }
@@ -86,7 +86,7 @@ export async function processRouteDeviationAudit(
  * Fetch deviation metrics for a trip.
  */
 export async function fetchDeviationMetrics(viagemId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('viagem_metricas_desvio')
     .select('*')
     .eq('viagem_id', viagemId)
@@ -105,7 +105,7 @@ export async function fetchDeviationAuditPoints(viagemId: string) {
   const PAGE = 1000;
 
   while (true) {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('desvio_auditoria')
       .select('latitude, longitude, distancia_rota_metros, status_desvio, tracked_at')
       .eq('viagem_id', viagemId)

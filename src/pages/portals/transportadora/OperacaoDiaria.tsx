@@ -1778,7 +1778,7 @@ export default function OperacaoDiaria() {
       const motoristaIdsList = motoristas.map(m => m.id);
 
       // Fetch viagens em andamento
-      const { data: viagensData, error: viagensError } = await supabase
+      const { data: viagensData, error: viagensError } = await (supabase as any)
         .from('viagens')
         .select(`
           id, codigo, status, created_at, updated_at, started_at, ended_at, motorista_id, rota_planejada_polyline,
@@ -2087,7 +2087,7 @@ export default function OperacaoDiaria() {
   // Mutation para cancelar viagem (RPC atômico — cancela entregas, restaura peso e cancela viagem numa transação)
   const cancelarViagemMutation = useMutation({
     mutationFn: async (viagemId: string) => {
-      const { data, error } = await supabase.rpc('cancelar_viagem_completa', {
+      const { data, error } = await (supabase as any).rpc('cancelar_viagem_completa', {
         p_viagem_id: viagemId,
       });
 
