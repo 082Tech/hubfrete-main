@@ -374,6 +374,7 @@ function DetailPanel({
   const [existingCtes, setExistingCtes] = useState<any[]>([]);
   const [unlinkedNfes, setUnlinkedNfes] = useState<any[]>([]);
   const [docsRefreshKey, setDocsRefreshKey] = useState(0);
+  const [gerandoCte, setGerandoCte] = useState(false);
 
   // Buscar status da viagem caso não venha nas props
   const { data: fetchedViagemStatus } = useQuery({
@@ -501,6 +502,27 @@ function DetailPanel({
     if (url) {
       setPreviewDocUrl(url);
       setPreviewDocTitle(title);
+    }
+  };
+
+  const handleGerarCte = async () => {
+    if (!entrega) return;
+    setGerandoCte(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('focusnfe-cte', {
+        body: { action: 'emitir_automatico', entrega_id: entrega.id },
+      });
+      if (error) throw error;
+      if (data?.erro || data?.error) {
+        toast.error(`Erro ao gerar CT-e: ${data.erro || data.error || data.mensagem}`);
+      } else {
+        toast.success('CT-e enviado para processamento com sucesso!');
+        refreshDocs();
+      }
+    } catch (err: any) {
+      toast.error(`Erro ao gerar CT-e: ${err.message || 'Erro desconhecido'}`);
+    } finally {
+      setGerandoCte(false);
     }
   };
 
@@ -959,6 +981,10 @@ function DetailPanel({
                 <DropdownMenuItem onClick={() => setAnexarDocumentosOpen(true)}>
                   <Paperclip className="w-4 h-4 mr-2" />
                   Anexar documentos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleGerarCte} disabled={gerandoCte || existingCtes.length > 0}>
+                  {gerandoCte ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileCode className="w-4 h-4 mr-2" />}
+                  {gerandoCte ? 'Gerando CT-e...' : existingCtes.length > 0 ? 'CT-e já emitido' : 'Gerar CT-e'}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-destructive focus:text-destructive">
