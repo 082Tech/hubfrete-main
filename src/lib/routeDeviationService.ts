@@ -60,7 +60,7 @@ export async function processRouteDeviationAudit(
     // 4. Compute and persist metrics
     const metrics = computeDeviationMetrics(deviationPoints);
 
-    const { error: metricsError } = await supabase
+    const { error: metricsError } = await (supabase as any)
       .from('viagem_metricas_desvio')
       .upsert({
         viagem_id: viagemId,
@@ -70,8 +70,8 @@ export async function processRouteDeviationAudit(
         total_pontos_analisados: metrics.total_pontos_analisados,
         total_pontos_fora_rota: metrics.total_pontos_fora_rota,
         total_pontos_leve_desvio: metrics.total_pontos_leve_desvio,
-        trechos_desvio: metrics.trechos_desvio as any,
-      } as any, { onConflict: 'viagem_id' });
+        trechos_desvio: metrics.trechos_desvio,
+      }, { onConflict: 'viagem_id' });
 
     if (metricsError) throw metricsError;
 
