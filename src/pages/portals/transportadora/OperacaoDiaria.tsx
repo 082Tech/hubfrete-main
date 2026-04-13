@@ -982,6 +982,10 @@ function DetailPanel({
                   <Paperclip className="w-4 h-4 mr-2" />
                   Anexar documentos
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleGerarCte} disabled={gerandoCte || existingCtes.length > 0}>
+                  {gerandoCte ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileCode className="w-4 h-4 mr-2" />}
+                  {gerandoCte ? 'Gerando CT-e...' : existingCtes.length > 0 ? 'CT-e já emitido' : 'Gerar CT-e'}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-destructive focus:text-destructive">
                   <Ban className="w-4 h-4 mr-2" />
