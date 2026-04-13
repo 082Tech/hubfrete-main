@@ -217,7 +217,7 @@ export default function HistoricoEntregas() {
       if (motoristaIds.length === 0) return [];
 
       // Fetch all viagens (not just finalized)
-      const { data: viagensData, error } = await supabase
+      const { data: viagensData, error } = await (supabase as any)
         .from('viagens')
         .select(`
           id, codigo, status, created_at, updated_at, ended_at,

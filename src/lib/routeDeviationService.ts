@@ -50,9 +50,9 @@ export async function processRouteDeviationAudit(
         tracked_at: dp.tracked_at,
       }));
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('desvio_auditoria')
-        .insert(batch as any);
+        .insert(batch);
 
       if (error) throw error;
     }
@@ -60,7 +60,7 @@ export async function processRouteDeviationAudit(
     // 4. Compute and persist metrics
     const metrics = computeDeviationMetrics(deviationPoints);
 
-    const { error: metricsError } = await supabase
+    const { error: metricsError } = await (supabase as any)
       .from('viagem_metricas_desvio')
       .upsert({
         viagem_id: viagemId,
@@ -70,8 +70,8 @@ export async function processRouteDeviationAudit(
         total_pontos_analisados: metrics.total_pontos_analisados,
         total_pontos_fora_rota: metrics.total_pontos_fora_rota,
         total_pontos_leve_desvio: metrics.total_pontos_leve_desvio,
-        trechos_desvio: metrics.trechos_desvio as any,
-      } as any, { onConflict: 'viagem_id' });
+        trechos_desvio: metrics.trechos_desvio,
+      }, { onConflict: 'viagem_id' });
 
     if (metricsError) throw metricsError;
 
@@ -86,7 +86,7 @@ export async function processRouteDeviationAudit(
  * Fetch deviation metrics for a trip.
  */
 export async function fetchDeviationMetrics(viagemId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('viagem_metricas_desvio')
     .select('*')
     .eq('viagem_id', viagemId)
@@ -105,7 +105,7 @@ export async function fetchDeviationAuditPoints(viagemId: string) {
   const PAGE = 1000;
 
   while (true) {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('desvio_auditoria')
       .select('latitude, longitude, distancia_rota_metros, status_desvio, tracked_at')
       .eq('viagem_id', viagemId)
