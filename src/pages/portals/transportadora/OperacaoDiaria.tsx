@@ -505,6 +505,27 @@ function DetailPanel({
     }
   };
 
+  const handleGerarCte = async () => {
+    if (!entrega) return;
+    setGerandoCte(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('focusnfe-cte', {
+        body: { action: 'emitir_automatico', entrega_id: entrega.id },
+      });
+      if (error) throw error;
+      if (data?.erro || data?.error) {
+        toast.error(`Erro ao gerar CT-e: ${data.erro || data.error || data.mensagem}`);
+      } else {
+        toast.success('CT-e enviado para processamento com sucesso!');
+        refreshDocs();
+      }
+    } catch (err: any) {
+      toast.error(`Erro ao gerar CT-e: ${err.message || 'Erro desconhecido'}`);
+    } finally {
+      setGerandoCte(false);
+    }
+  };
+
   const docsCheck = checkRequiredDocuments(entrega);
 
   const remetenteNome = entrega.carga.remetente_nome_fantasia || entrega.carga.remetente_razao_social;
