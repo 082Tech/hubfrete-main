@@ -23,14 +23,13 @@ serve(async (req) => {
 
     const authHeader = "Basic " + btoa(FOCUS_NFE_TOKEN + ":");
 
-    // Auto-detect environment
+    // Auto-detect environment: dev → homologação, prod → produção
     const DEV_PROJECT_REF = "ublyithvarvtqbwmxtyh";
     const isDevEnv = SUPABASE_URL.includes(DEV_PROJECT_REF);
-    // IMPORTANT: A API de Empresas (Revenda) opera EXCLUSIVAMENTE em produção.
-    // Em dev usamos dry_run=1 para simular sem persistir.
-    const FOCUS_BASE_URL = "https://api.focusnfe.com.br";
-    const dryRunParam = isDevEnv ? "?dry_run=1" : "";
-    console.log(`FocusNFe Empresas: PRODUÇÃO ${isDevEnv ? "(dry_run=1)" : "(real)"}`);
+    const FOCUS_BASE_URL = isDevEnv
+      ? "https://homologacao.focusnfe.com.br"
+      : "https://api.focusnfe.com.br";
+    console.log(`FocusNFe Empresas: ${isDevEnv ? "HOMOLOGAÇÃO" : "PRODUÇÃO"}`);
 
     switch (action) {
       case "cadastrar": {
