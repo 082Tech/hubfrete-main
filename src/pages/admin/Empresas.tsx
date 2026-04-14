@@ -414,12 +414,12 @@ export default function Empresas() {
     setFocusDialogOpen(true);
   };
 
-  const handleFocusRegister = async () => {
+  const handleFocusRegister = async (force = false) => {
     if (!selectedEmpresa) return;
     setFocusRegistering(true);
     try {
       const { data, error } = await supabase.functions.invoke('focusnfe-empresa', {
-        body: { action: 'cadastrar', empresa_id: selectedEmpresa.id },
+        body: { action: 'cadastrar', empresa_id: selectedEmpresa.id, force },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -432,6 +432,8 @@ export default function Empresas() {
       setFocusRegistering(false);
     }
   };
+
+  const handleFocusRegisterForce = () => handleFocusRegister(true);
 
   const toggleExpanded = (empresaId: number) => {
     setExpandedRows(prev => {
