@@ -23,14 +23,13 @@ serve(async (req) => {
 
     const authHeader = "Basic " + btoa(FOCUS_NFE_TOKEN + ":");
 
-    // Auto-detect environment
+    // Auto-detect environment: dev → homologação, prod → produção
     const DEV_PROJECT_REF = "ublyithvarvtqbwmxtyh";
     const isDevEnv = SUPABASE_URL.includes(DEV_PROJECT_REF);
-    // IMPORTANT: A API de Empresas (Revenda) opera EXCLUSIVAMENTE em produção.
-    // Em dev usamos dry_run=1 para simular sem persistir.
-    const FOCUS_BASE_URL = "https://api.focusnfe.com.br";
-    const dryRunParam = isDevEnv ? "?dry_run=1" : "";
-    console.log(`FocusNFe Empresas: PRODUÇÃO ${isDevEnv ? "(dry_run=1)" : "(real)"}`);
+    const FOCUS_BASE_URL = isDevEnv
+      ? "https://homologacao.focusnfe.com.br"
+      : "https://api.focusnfe.com.br";
+    console.log(`FocusNFe Empresas: ${isDevEnv ? "HOMOLOGAÇÃO" : "PRODUÇÃO"}`);
 
     switch (action) {
       case "cadastrar": {
@@ -49,7 +48,7 @@ serve(async (req) => {
         if (empresa["token-focus"] && !force) {
           // Verify on FocusNFe if actually exists
           const cnpjCheck = (empresa.cnpj_matriz || "").replace(/\D/g, "");
-          const verifyRes = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpjCheck}${dryRunParam}`, {
+          const verifyRes = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpjCheck}`, {
             method: "GET",
             headers: { "Authorization": authHeader },
           });
@@ -121,7 +120,7 @@ serve(async (req) => {
         console.log("Registering empresa on FocusNFe:", { cnpj, nome: payload.nome });
 
         // 6. Call FocusNFe API
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas${dryRunParam}`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas`, {
           method: "POST",
           headers: { "Authorization": authHeader, "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -221,7 +220,7 @@ serve(async (req) => {
           updatePayload.senha_certificado = certificado.senha_encriptada;
         }
 
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}${dryRunParam}`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}`, {
           method: "PUT",
           headers: { "Authorization": authHeader, "Content-Type": "application/json" },
           body: JSON.stringify(updatePayload),
@@ -247,7 +246,7 @@ serve(async (req) => {
         if (!empresa) throw new Error("Empresa não encontrada");
         const cnpj = (empresa.cnpj_matriz || "").replace(/\D/g, "");
 
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}${dryRunParam}`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}`, {
           method: "GET",
           headers: { "Authorization": authHeader },
         });
