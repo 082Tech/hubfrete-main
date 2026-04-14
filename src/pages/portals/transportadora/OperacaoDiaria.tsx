@@ -474,14 +474,14 @@ function DetailPanel({
 
     if (nextStatus.status === 'entregue') {
       setEntregueDialogOpen(true);
-    } else if (nextStatus.status === 'saiu_para_entrega') {
-      // Check if NF-e is attached before allowing transition
+    } else if (nextStatus.status === 'em_transito') {
+      // Check if NF-e is attached before allowing transition to em_transito
       setCheckingNfe(true);
       try {
         const { hasNfeAttached } = await import('@/lib/documentHelpers');
         const hasNfe = await hasNfeAttached(entrega.id);
         if (!hasNfe) {
-          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para destino.');
+          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de seguir em trânsito.');
           setCheckingNfe(false);
           return;
         }
@@ -856,6 +856,8 @@ function DetailPanel({
               canhotoUrl={entrega.canhoto_url || null}
               outrosDocumentos={entrega.outros_documentos || []}
               onRefresh={refreshDocs}
+              onGerarCte={handleGerarCte}
+              gerandoCte={gerandoCte}
             />
           </div>
 
