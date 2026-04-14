@@ -24,15 +24,23 @@ serve(async (req) => {
 
     const { action, entrega_id, ref, cte_data, justificativa } = await req.json();
 
-    // Helper: get empresa-specific FocusNFe token (falls back to global)
+    // Auto-detect environment
+    const DEV_PROJECT_REF = "ublyithvarvtqbwmxtyh";
+    const isDevEnv = SUPABASE_URL.includes(DEV_PROJECT_REF);
+
+    // Helper: get empresa-specific FocusNFe token
+    // Em dev → usa token_focus_homologacao; em prod → usa token-focus
     async function getEmpresaToken(empresaId: number): Promise<string> {
       const { data: empresa } = await supabase
         .from("empresas")
-        .select("\"token-focus\"")
+        .select("\"token-focus\", token_focus_homologacao")
         .eq("id", empresaId)
         .single();
       
-      const token = empresa?.["token-focus"];
+      const token = isDevEnv
+        ? (empresa?.token_focus_homologacao || empresa?.["token-focus"])
+        : (empresa?.["token-focus"] || empresa?.token_focus_homologacao);
+      
       if (token) return token;
       
       console.warn(`Empresa ${empresaId} sem token-focus, usando token global`);

@@ -1406,6 +1406,7 @@ export type Database = {
           status: string
           telefone: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
+          token_focus_homologacao: string | null
           "token-focus": string | null
         }
         Insert: {
@@ -1424,6 +1425,7 @@ export type Database = {
           status?: string
           telefone?: string | null
           tipo: Database["public"]["Enums"]["tipo_empresa"]
+          token_focus_homologacao?: string | null
           "token-focus"?: string | null
         }
         Update: {
@@ -1442,6 +1444,7 @@ export type Database = {
           status?: string
           telefone?: string | null
           tipo?: Database["public"]["Enums"]["tipo_empresa"]
+          token_focus_homologacao?: string | null
           "token-focus"?: string | null
         }
         Relationships: []
