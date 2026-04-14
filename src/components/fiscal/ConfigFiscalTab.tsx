@@ -102,11 +102,12 @@ export function ConfigFiscalTab() {
       // Load empresa fiscal data
       const { data: emp } = await supabase
         .from('empresas')
-        .select('razao_social, nome_fantasia, inscricao_estadual, telefone, email')
+        .select('razao_social, nome_fantasia, inscricao_estadual, telefone, email, "token-focus"')
         .eq('id', empresa.id)
         .single();
 
       if (emp) {
+        setFocusToken((emp as any)["token-focus"] || null);
         setEmpresaData({
           razao_social: (emp as any).razao_social || '',
           nome_fantasia: (emp as any).nome_fantasia || '',
