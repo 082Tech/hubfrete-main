@@ -127,13 +127,20 @@ serve(async (req) => {
           body: JSON.stringify(payload),
         });
 
-        const result = await response.json();
+        const responseText = await response.text();
+        let result: any;
+        try { result = JSON.parse(responseText); } catch { result = { raw: responseText }; }
+
+        console.log("FocusNFe response:", response.status, responseText.substring(0, 500));
 
         if (!response.ok) {
           console.error("FocusNFe registration failed:", result);
           return new Response(JSON.stringify({ 
             error: "Falha ao cadastrar na FocusNFe",
-            details: result 
+            details: result,
+            hint: response.status === 401 
+              ? "Token de revenda inválido ou não configurado. A API de Empresas exige o token de revenda (FOCUS_NFE_TOKEN), diferente do token de emissão."
+              : undefined
           }), { 
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: response.status 
