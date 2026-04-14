@@ -51,6 +51,8 @@ export function ConfigFiscalTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lookingUpIbge, setLookingUpIbge] = useState(false);
+  const [focusRegistering, setFocusRegistering] = useState(false);
+  const [focusToken, setFocusToken] = useState<string | null>(null);
 
   const [empresaData, setEmpresaData] = useState<EmpresaFiscal>({
     razao_social: '',
