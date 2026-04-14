@@ -23,13 +23,14 @@ serve(async (req) => {
 
     const authHeader = "Basic " + btoa(FOCUS_NFE_TOKEN + ":");
 
-    // Auto-detect environment: dev Supabase → homologação, prod → produção
+    // Auto-detect environment
     const DEV_PROJECT_REF = "ublyithvarvtqbwmxtyh";
     const isDevEnv = SUPABASE_URL.includes(DEV_PROJECT_REF);
-    const FOCUS_BASE_URL = isDevEnv
-      ? "https://homologacao.focusnfe.com.br"
-      : "https://api.focusnfe.com.br";
-    console.log(`FocusNFe environment: ${isDevEnv ? "HOMOLOGAÇÃO" : "PRODUÇÃO"}`);
+    // IMPORTANT: A API de Empresas (Revenda) opera EXCLUSIVAMENTE em produção.
+    // Em dev usamos dry_run=1 para simular sem persistir.
+    const FOCUS_BASE_URL = "https://api.focusnfe.com.br";
+    const dryRunParam = isDevEnv ? "?dry_run=1" : "";
+    console.log(`FocusNFe Empresas: PRODUÇÃO ${isDevEnv ? "(dry_run=1)" : "(real)"}`);
 
     switch (action) {
       case "cadastrar": {
@@ -48,7 +49,7 @@ serve(async (req) => {
         if (empresa["token-focus"] && !force) {
           // Verify on FocusNFe if actually exists
           const cnpjCheck = (empresa.cnpj_matriz || "").replace(/\D/g, "");
-          const verifyRes = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpjCheck}`, {
+          const verifyRes = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpjCheck}${dryRunParam}`, {
             method: "GET",
             headers: { "Authorization": authHeader },
           });
@@ -120,19 +121,26 @@ serve(async (req) => {
         console.log("Registering empresa on FocusNFe:", { cnpj, nome: payload.nome });
 
         // 6. Call FocusNFe API
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas${dryRunParam}`, {
           method: "POST",
           headers: { "Authorization": authHeader, "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
 
-        const result = await response.json();
+        const responseText = await response.text();
+        let result: any;
+        try { result = JSON.parse(responseText); } catch { result = { raw: responseText }; }
+
+        console.log("FocusNFe response:", response.status, responseText.substring(0, 500));
 
         if (!response.ok) {
           console.error("FocusNFe registration failed:", result);
           return new Response(JSON.stringify({ 
             error: "Falha ao cadastrar na FocusNFe",
-            details: result 
+            details: result,
+            hint: response.status === 401 
+              ? "Token de revenda inválido ou não configurado. A API de Empresas exige o token de revenda (FOCUS_NFE_TOKEN), diferente do token de emissão."
+              : undefined
           }), { 
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: response.status 
@@ -213,7 +221,7 @@ serve(async (req) => {
           updatePayload.senha_certificado = certificado.senha_encriptada;
         }
 
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}${dryRunParam}`, {
           method: "PUT",
           headers: { "Authorization": authHeader, "Content-Type": "application/json" },
           body: JSON.stringify(updatePayload),
@@ -239,7 +247,7 @@ serve(async (req) => {
         if (!empresa) throw new Error("Empresa não encontrada");
         const cnpj = (empresa.cnpj_matriz || "").replace(/\D/g, "");
 
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}${dryRunParam}`, {
           method: "GET",
           headers: { "Authorization": authHeader },
         });
