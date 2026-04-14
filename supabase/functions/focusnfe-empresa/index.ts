@@ -24,12 +24,7 @@ serve(async (req) => {
     const authHeader = "Basic " + btoa(FOCUS_NFE_TOKEN + ":");
 
     // API de Empresas opera EXCLUSIVAMENTE em produção
-    // Em dev usamos dry_run=1 para simular sem persistir
-    const DEV_PROJECT_REF = "ublyithvarvtqbwmxtyh";
-    const isDevEnv = SUPABASE_URL.includes(DEV_PROJECT_REF);
     const FOCUS_BASE_URL = "https://api.focusnfe.com.br";
-    const dryRunSuffix = isDevEnv ? "?dry_run=1" : "";
-    console.log(`FocusNFe Empresas: PRODUÇÃO${isDevEnv ? " (dry_run)" : ""}`);
 
     switch (action) {
       case "cadastrar": {
@@ -38,7 +33,7 @@ serve(async (req) => {
         // 1. Fetch empresa data
         const { data: empresa, error: empError } = await supabase
           .from("empresas")
-          .select("id, cnpj_matriz, razao_social, nome_fantasia, inscricao_estadual, telefone, email, \"token-focus\"")
+          .select("id, cnpj_matriz, razao_social, nome_fantasia, inscricao_estadual, telefone, email, \"token-focus\", token_focus_homologacao")
           .eq("id", empresa_id)
           .single();
 
@@ -55,12 +50,13 @@ serve(async (req) => {
           if (verifyRes.ok) {
             return new Response(JSON.stringify({ 
               message: "Empresa já cadastrada na FocusNFe", 
-              token: empresa["token-focus"] 
+              token: empresa["token-focus"],
+              token_homologacao: empresa.token_focus_homologacao,
             }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
           }
-          // Not found on FocusNFe — clear stale token and proceed with registration
+          // Not found on FocusNFe — clear stale tokens and proceed with registration
           console.log("Token exists but empresa not found on FocusNFe, re-registering...");
-          await supabase.from("empresas").update({ "token-focus": null }).eq("id", empresa_id);
+          await supabase.from("empresas").update({ "token-focus": null, token_focus_homologacao: null }).eq("id", empresa_id);
         }
 
         // 2. Fetch filial matriz for address
@@ -119,8 +115,8 @@ serve(async (req) => {
 
         console.log("Registering empresa on FocusNFe:", { cnpj, nome: payload.nome });
 
-        // 6. Call FocusNFe API
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas${dryRunSuffix}`, {
+        // 6. Call FocusNFe API (always production)
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas`, {
           method: "POST",
           headers: { "Authorization": authHeader, "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -137,25 +133,23 @@ serve(async (req) => {
           return new Response(JSON.stringify({ 
             error: "Falha ao cadastrar na FocusNFe",
             details: result,
-            hint: response.status === 401 
-              ? "Token de revenda inválido ou não configurado. A API de Empresas exige o token de revenda (FOCUS_NFE_TOKEN), diferente do token de emissão."
-              : undefined
           }), { 
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: response.status 
           });
         }
 
-        // 7. Store the returned token
-        const focusToken = result.token || result.token_producao || result.token_homologacao;
+        // 7. Store both tokens (production + homologation)
+        const tokenProducao = result.token_producao || result.token || null;
+        const tokenHomologacao = result.token_homologacao || null;
         
-        if (focusToken) {
-          await supabase
-            .from("empresas")
-            .update({ "token-focus": focusToken })
-            .eq("id", empresa_id);
-          
-          console.log("Token stored for empresa:", empresa_id);
+        const updateFields: Record<string, any> = {};
+        if (tokenProducao) updateFields["token-focus"] = tokenProducao;
+        if (tokenHomologacao) updateFields["token_focus_homologacao"] = tokenHomologacao;
+
+        if (Object.keys(updateFields).length > 0) {
+          await supabase.from("empresas").update(updateFields).eq("id", empresa_id);
+          console.log("Tokens stored for empresa:", empresa_id, { producao: !!tokenProducao, homologacao: !!tokenHomologacao });
         }
 
         return new Response(JSON.stringify({ 
@@ -168,7 +162,6 @@ serve(async (req) => {
       case "atualizar": {
         if (!empresa_id) throw new Error("empresa_id is required");
 
-        // Fetch current token
         const { data: empresa } = await supabase
           .from("empresas")
           .select("cnpj_matriz, razao_social, nome_fantasia, inscricao_estadual, telefone, email, \"token-focus\"")
@@ -180,7 +173,6 @@ serve(async (req) => {
 
         const cnpj = (empresa.cnpj_matriz || "").replace(/\D/g, "");
 
-        // Fetch filial and certificado
         const { data: filial } = await supabase
           .from("filiais")
           .select("logradouro, numero, bairro, complemento, cidade, estado, cep, telefone, endereco")
@@ -253,7 +245,8 @@ serve(async (req) => {
 
         const result = await response.json();
         return new Response(JSON.stringify(result), { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: response.ok ? 200 : response.status,
         });
       }
 
