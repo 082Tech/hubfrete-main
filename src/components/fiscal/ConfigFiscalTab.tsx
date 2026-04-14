@@ -230,6 +230,24 @@ export function ConfigFiscalTab() {
     }
   };
 
+  const handleFocusRegister = async () => {
+    if (!empresa?.id) return;
+    setFocusRegistering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('focusnfe-empresa', {
+        body: { action: 'cadastrar', empresa_id: empresa.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(data?.message || 'Empresa cadastrada na FocusNFe!');
+      setFocusToken(data?.focus_data?.token || data?.token || 'registered');
+    } catch (err: any) {
+      toast.error('Erro ao cadastrar: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setFocusRegistering(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -240,6 +258,42 @@ export function ConfigFiscalTab() {
 
   return (
     <div className="space-y-6">
+      {/* FocusNFe Integration Status */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Cloud className="w-5 h-5" />
+            Integração FocusNFe
+          </CardTitle>
+          <CardDescription>Cadastro da empresa no emissor fiscal para CT-e e MDF-e</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {focusToken ? (
+            <Alert className="border-primary/30 bg-primary/5">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>Empresa cadastrada na FocusNFe e pronta para emitir documentos fiscais.</span>
+                <Badge variant="default" className="ml-2">Ativa</Badge>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-3">
+              <Alert className="border-amber-500/30 bg-amber-500/5">
+                <AlertCircle className="h-4 w-4 text-amber-500" />
+                <AlertDescription>
+                  Empresa ainda não cadastrada na FocusNFe. Cadastre para emitir CT-e e MDF-e.
+                  Preencha os dados fiscais e o certificado digital antes.
+                </AlertDescription>
+              </Alert>
+              <Button onClick={handleFocusRegister} disabled={focusRegistering} className="gap-2">
+                {focusRegistering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+                Cadastrar na FocusNFe
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Empresa Fiscal Data */}
       <Card className="border-border">
         <CardHeader>
