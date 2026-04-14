@@ -1077,7 +1077,7 @@ export default function Empresas() {
                     </p>
                   </div>
                 </div>
-                <Button onClick={handleFocusRegister} disabled={focusRegistering} className="w-full gap-2">
+                <Button onClick={() => handleFocusRegister()} disabled={focusRegistering} className="w-full gap-2">
                   {focusRegistering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
                   Cadastrar na FocusNFe
                 </Button>
