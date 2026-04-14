@@ -509,22 +509,24 @@ export default function Empresas() {
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label>Classe *</Label>
-          <Select 
-            value={formData.classe} 
-            onValueChange={(v: ClasseEmpresa) => setFormData({ ...formData, classe: v })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="INDÚSTRIA">Indústria</SelectItem>
-              <SelectItem value="LOJA">Loja</SelectItem>
-              <SelectItem value="COMÉRCIO">Comércio</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {formData.tipo === 'EMBARCADOR' && (
+          <div className="space-y-2">
+            <Label>Classe *</Label>
+            <Select 
+              value={formData.classe} 
+              onValueChange={(v: ClasseEmpresa) => setFormData({ ...formData, classe: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="INDÚSTRIA">Indústria</SelectItem>
+                <SelectItem value="LOJA">Loja</SelectItem>
+                <SelectItem value="COMÉRCIO">Comércio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Taxa HubFrete - only for Embarcadores */}
@@ -727,7 +729,11 @@ export default function Empresas() {
                               {empresa.tipo === 'EMBARCADOR' ? 'Embarcador' : 'Transportadora'}
                             </Badge>
                           </TableCell>
-                          <TableCell>{empresa.classe}</TableCell>
+                          <TableCell>
+                            {empresa.tipo === 'EMBARCADOR' ? empresa.classe : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-center">
                             {empresa.tipo === 'EMBARCADOR' ? (
                               <Badge variant="outline" className="bg-chart-4/10 text-chart-4 border-chart-4/30">
