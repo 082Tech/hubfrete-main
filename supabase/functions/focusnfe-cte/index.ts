@@ -13,8 +13,8 @@ serve(async (req) => {
   }
 
   try {
-    const FOCUS_NFE_TOKEN = Deno.env.get("FOCUS_NFE_TOKEN");
-    if (!FOCUS_NFE_TOKEN) {
+    const FOCUS_NFE_TOKEN_GLOBAL = Deno.env.get("FOCUS_NFE_TOKEN");
+    if (!FOCUS_NFE_TOKEN_GLOBAL) {
       throw new Error("FOCUS_NFE_TOKEN is not configured");
     }
 
@@ -23,6 +23,21 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { action, entrega_id, ref, cte_data, justificativa } = await req.json();
+
+    // Helper: get empresa-specific FocusNFe token (falls back to global)
+    async function getEmpresaToken(empresaId: number): Promise<string> {
+      const { data: empresa } = await supabase
+        .from("empresas")
+        .select("\"token-focus\"")
+        .eq("id", empresaId)
+        .single();
+      
+      const token = empresa?.["token-focus"];
+      if (token) return token;
+      
+      console.warn(`Empresa ${empresaId} sem token-focus, usando token global`);
+      return FOCUS_NFE_TOKEN_GLOBAL!;
+    }
 
     // Helper: build CT-e payload from entrega data using real fiscal config
     async function buildCteFromEntrega(entregaId: string, supabaseClient: any) {
@@ -52,6 +67,9 @@ serve(async (req) => {
       if (!empresaId) {
         throw new Error("Motorista não vinculado a uma empresa");
       }
+
+      // Get empresa-specific token
+      const empresaToken = await getEmpresaToken(empresaId);
 
       // Fetch empresa with fiscal fields
       const { data: empresa } = await supabaseClient
@@ -185,17 +203,16 @@ serve(async (req) => {
         informacoes_adicionais_contribuinte: isHomologacao ? homoMsg : "",
       };
 
-      return { payload, FOCUS_BASE_URL, configFiscal, empresaId };
+      return { payload, FOCUS_BASE_URL, configFiscal, empresaId, empresaToken };
     }
-
-    const authHeader = "Basic " + btoa(FOCUS_NFE_TOKEN + ":");
 
     switch (action) {
       case "emitir_automatico": {
         if (!entrega_id) throw new Error("entrega_id is required");
         
-        const { payload, FOCUS_BASE_URL, configFiscal } = await buildCteFromEntrega(entrega_id, supabase);
+        const { payload, FOCUS_BASE_URL, configFiscal, empresaToken } = await buildCteFromEntrega(entrega_id, supabase);
         const refAuto = `CTE-AUTO-${entrega_id.slice(0, 8)}-${Date.now()}`;
+        const authHeader = "Basic " + btoa(empresaToken + ":");
 
         const response = await fetch(`${FOCUS_BASE_URL}/v2/cte?ref=${refAuto}`, {
           method: "POST",
@@ -227,7 +244,6 @@ serve(async (req) => {
         return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       
-      // ... rest of existing actions (emitir, consultar, cancelar)
       default:
         return new Response(JSON.stringify({ error: "Action not supported" }), { status: 400 });
     }
