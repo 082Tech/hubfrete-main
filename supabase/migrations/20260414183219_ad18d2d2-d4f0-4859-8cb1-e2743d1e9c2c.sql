@@ -1,0 +1,1 @@
+UPDATE public.empresas SET "token-focus" = NULL, token_focus_homologacao = NULL WHERE "token-focus" IS NOT NULL;
