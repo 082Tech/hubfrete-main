@@ -1049,14 +1049,20 @@ export default function Empresas() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             {selectedEmpresa?.['token-focus'] ? (
-              <div className="flex items-start gap-3 p-4 rounded-lg border border-primary/30 bg-primary/5">
-                <CheckCircle2 className="w-5 h-5 text-primary mt-0.5" />
-                <div>
-                  <p className="font-medium text-foreground">Empresa cadastrada na FocusNFe</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Pronta para emitir CT-e e MDF-e automaticamente.
-                  </p>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-4 rounded-lg border border-primary/30 bg-primary/5">
+                  <CheckCircle2 className="w-5 h-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="font-medium text-foreground">Empresa cadastrada na FocusNFe</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Pronta para emitir CT-e e MDF-e automaticamente.
+                    </p>
+                  </div>
                 </div>
+                <Button variant="outline" onClick={() => handleFocusRegisterForce()} disabled={focusRegistering} className="w-full gap-2">
+                  {focusRegistering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+                  Recadastrar na FocusNFe
+                </Button>
               </div>
             ) : (
               <div className="space-y-4">
