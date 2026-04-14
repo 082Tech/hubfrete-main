@@ -16,6 +16,9 @@ import {
   User,
   UserPlus,
   Landmark,
+  Cloud,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
