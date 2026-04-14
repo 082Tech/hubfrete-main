@@ -498,6 +498,13 @@ export function ViagemDetailPanel({
             viagemCodigo={viagem.codigo}
             manifestos={manifestosMap?.[viagem.id] || []}
             onRefresh={onRefresh}
+            entregasUf={viagem.entregas.map(e => ({
+              id: e.id,
+              codigo: e.codigo,
+              uf_origem: e.carga.endereco_origem?.estado || null,
+              uf_destino: e.carga.endereco_destino?.estado || null,
+              has_cte: (ctesMap?.[e.id]?.length || 0) > 0,
+            }))}
           />
 
           <Separator />
