@@ -120,7 +120,7 @@ serve(async (req) => {
         console.log("Registering empresa on FocusNFe:", { cnpj, nome: payload.nome });
 
         // 6. Call FocusNFe API
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas${dryRunSuffix}`, {
           method: "POST",
           headers: { "Authorization": authHeader, "Content-Type": "application/json" },
           body: JSON.stringify(payload),
