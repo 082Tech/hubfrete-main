@@ -752,7 +752,7 @@ export function EntregaDocumentosPanel({
                             label="Arraste o XML da NF-e aqui, ou clique para selecionar"
                             hint="Apenas XML • até 10 MB • múltiplos permitidos"
                             accentColor="border-muted-foreground/20 hover:border-primary/40"
-                            inputRef={nfeRef} multiple onFiles={handleNfeFiles}
+                            inputRef={nfeRef} multiple onFiles={handleNfeFiles} accept=".xml"
                         />
                     )}
                 </section>
