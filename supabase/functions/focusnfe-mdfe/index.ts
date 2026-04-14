@@ -57,6 +57,7 @@ serve(async (req) => {
         if (ctes.length === 0) throw new Error("Nenhum CT-e autorizado encontrado para esta viagem");
 
         // 3. Build MDF-e Payload (Simplified)
+        const uniqueRef = ref || `mdfe-${viagem_id}-${Date.now()}`;
         const payload = {
           data_emissao: new Date().toISOString(),
           tipo_emitente: 1, // Prestador de serviço de transporte
@@ -74,7 +75,7 @@ serve(async (req) => {
           inf_ctes: ctes
         };
 
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/mdfes?ref=${ref}`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/mdfes?ref=${uniqueRef}`, {
           method: "POST",
           headers: { "Authorization": authHeader, "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -83,14 +84,66 @@ serve(async (req) => {
         const result = await response.json();
         
         if (response.ok) {
+          // Encerrar manifesto ativo anterior (se houver)
+          await supabase
+            .from("mdfes")
+            .update({ status: "encerrado", encerrado_at: new Date().toISOString() })
+            .eq("viagem_id", viagem_id)
+            .in("status", ["processando", "autorizado"]);
+
           await supabase.from("mdfes").insert({
             viagem_id,
-            focus_ref: ref,
-            status: result.status,
+            focus_ref: uniqueRef,
+            status: result.status || "processando",
             empresa_id: viagem.motorista?.empresa_id
           });
         }
 
+        return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "encerrar": {
+        if (!viagem_id) throw new Error("viagem_id is required");
+
+        // Find the active manifesto
+        const { data: activeManifesto } = await supabase
+          .from("mdfes")
+          .select("id, focus_ref, status")
+          .eq("viagem_id", viagem_id)
+          .in("status", ["processando", "autorizado"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!activeManifesto) throw new Error("Nenhum MDF-e ativo encontrado para encerrar");
+
+        // Call FocusNFe to encerrar
+        const encerrarRef = activeManifesto.focus_ref;
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/mdfes/${encerrarRef}`, {
+          method: "DELETE",
+          headers: { "Authorization": authHeader, "Content-Type": "application/json" },
+        });
+
+        const result = await response.json();
+
+        // Update local DB
+        await supabase
+          .from("mdfes")
+          .update({ status: "encerrado", encerrado_at: new Date().toISOString() })
+          .eq("id", activeManifesto.id);
+
+        return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "consultar": {
+        if (!ref) throw new Error("ref is required");
+
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/mdfes/${ref}`, {
+          method: "GET",
+          headers: { "Authorization": authHeader },
+        });
+
+        const result = await response.json();
         return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
