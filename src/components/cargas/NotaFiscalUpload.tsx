@@ -21,9 +21,10 @@ export function NotaFiscalUpload({ value, onChange }: NotaFiscalUploadProps) {
     if (!file) return;
 
     // Validate file type
-    const allowedTypes = ['application/pdf', 'application/xml', 'text/xml', 'image/png', 'image/jpeg'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Tipo de arquivo não permitido. Use PDF, XML ou imagens.');
+    const allowedTypes = ['application/xml', 'text/xml'];
+    const isXml = allowedTypes.includes(file.type) || file.name.toLowerCase().endsWith('.xml');
+    if (!isXml) {
+      toast.error('Apenas arquivos XML são permitidos para NF-e.');
       return;
     }
 
@@ -132,7 +133,7 @@ export function NotaFiscalUpload({ value, onChange }: NotaFiscalUploadProps) {
               <input
                 ref={inputRef}
                 type="file"
-                accept=".pdf,.xml,image/*"
+                accept=".xml"
                 onChange={handleFileSelect}
                 className="hidden"
                 disabled={uploading}
@@ -147,7 +148,7 @@ export function NotaFiscalUpload({ value, onChange }: NotaFiscalUploadProps) {
                   <Upload className="w-8 h-8 text-muted-foreground mb-2" />
                   <span className="text-sm font-medium">Clique para anexar</span>
                   <span className="text-xs text-muted-foreground mt-1">
-                    PDF, XML ou imagem (máx. 10MB)
+                    Apenas XML (máx. 10MB)
                   </span>
                 </>
               )}
