@@ -29,15 +29,19 @@ serve(async (req) => {
       : "https://api.focusnfe.com.br";
     console.log(`FocusNFe environment: ${isDevEnv ? "HOMOLOGAÇÃO" : "PRODUÇÃO"}`);
 
-    // Helper: get empresa-specific FocusNFe token (falls back to global)
+    // Helper: get empresa-specific FocusNFe token
+    // Em dev → usa token_focus_homologacao; em prod → usa token-focus
     async function getEmpresaToken(empresaId: number): Promise<string> {
       const { data: empresa } = await supabase
         .from("empresas")
-        .select("\"token-focus\"")
+        .select("\"token-focus\", token_focus_homologacao")
         .eq("id", empresaId)
         .single();
       
-      const token = empresa?.["token-focus"];
+      const token = isDevEnv
+        ? (empresa?.token_focus_homologacao || empresa?.["token-focus"])
+        : (empresa?.["token-focus"] || empresa?.token_focus_homologacao);
+      
       if (token) return token;
       
       console.warn(`Empresa ${empresaId} sem token-focus, usando token global`);
