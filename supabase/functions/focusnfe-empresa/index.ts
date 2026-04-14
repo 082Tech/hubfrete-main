@@ -23,9 +23,13 @@ serve(async (req) => {
 
     const authHeader = "Basic " + btoa(FOCUS_NFE_TOKEN + ":");
 
-    // AMBIENTE DA API: Alterne entre homologacao e api (produção)
-    const FOCUS_BASE_URL = "https://homologacao.focusnfe.com.br";
-    // const FOCUS_BASE_URL = "https://api.focusnfe.com.br";
+    // Auto-detect environment: dev Supabase → homologação, prod → produção
+    const DEV_PROJECT_REF = "ublyithvarvtqbwmxtyh";
+    const isDevEnv = SUPABASE_URL.includes(DEV_PROJECT_REF);
+    const FOCUS_BASE_URL = isDevEnv
+      ? "https://homologacao.focusnfe.com.br"
+      : "https://api.focusnfe.com.br";
+    console.log(`FocusNFe environment: ${isDevEnv ? "HOMOLOGAÇÃO" : "PRODUÇÃO"}`);
 
     switch (action) {
       case "cadastrar": {
