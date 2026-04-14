@@ -48,7 +48,7 @@ serve(async (req) => {
         if (empresa["token-focus"] && !force) {
           // Verify on FocusNFe if actually exists
           const cnpjCheck = (empresa.cnpj_matriz || "").replace(/\D/g, "");
-          const verifyRes = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpjCheck}${dryRunParam}`, {
+          const verifyRes = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpjCheck}`, {
             method: "GET",
             headers: { "Authorization": authHeader },
           });
@@ -120,7 +120,7 @@ serve(async (req) => {
         console.log("Registering empresa on FocusNFe:", { cnpj, nome: payload.nome });
 
         // 6. Call FocusNFe API
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas${dryRunParam}`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas`, {
           method: "POST",
           headers: { "Authorization": authHeader, "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -220,7 +220,7 @@ serve(async (req) => {
           updatePayload.senha_certificado = certificado.senha_encriptada;
         }
 
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}${dryRunParam}`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}`, {
           method: "PUT",
           headers: { "Authorization": authHeader, "Content-Type": "application/json" },
           body: JSON.stringify(updatePayload),
@@ -246,7 +246,7 @@ serve(async (req) => {
         if (!empresa) throw new Error("Empresa não encontrada");
         const cnpj = (empresa.cnpj_matriz || "").replace(/\D/g, "");
 
-        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}${dryRunParam}`, {
+        const response = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpj}`, {
           method: "GET",
           headers: { "Authorization": authHeader },
         });
