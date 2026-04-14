@@ -43,6 +43,8 @@ interface EntregaDocumentosPanelProps {
     canhotoUrl?: string | null;
     outrosDocumentos?: OutroDocumento[];
     onRefresh: () => void;
+    onGerarCte?: () => void;
+    gerandoCte?: boolean;
 }
 
 // ─── utils ────────────────────────────────────────────────────────────────────
@@ -316,7 +318,7 @@ function SectionTitle({ icon, label, count, badge }: {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function EntregaDocumentosPanel({
-    perfil, entregaId, ctes: ctesProp, nfesDiretas = [], canhotoUrl: canhotoUrlProp, outrosDocumentos: outrosDocsProp = [], onRefresh,
+    perfil, entregaId, ctes: ctesProp, nfesDiretas = [], canhotoUrl: canhotoUrlProp, outrosDocumentos: outrosDocsProp = [], onRefresh, onGerarCte, gerandoCte = false,
 }: EntregaDocumentosPanelProps) {
 
     // ── Estado LOCAL (atualiza imediatamente sem depender do ciclo do pai) ──────
@@ -813,16 +815,39 @@ export function EntregaDocumentosPanel({
                         </div>
                     )}
 
-                    {stagingCtes.length > 0 ? (
-                        <StagingList items={stagingCtes} onRemove={removeCteStaging} onConfirm={confirmCteUpload} uploading={uploadingCte} label="CT-es" />
-                    ) : (
-                        <DropZone
-                            label="Arrastar CT-es aqui"
-                            hint="PDF ou XML • até 10 MB • múltiplos de uma vez"
-                            accentColor="border-amber-200 dark:border-amber-800/40 hover:border-amber-400"
-                            inputRef={cteRef} multiple onFiles={handleCteFiles}
-                        />
-                    )}
+                    {/* Botão Gerar CT-e — bloqueado até ter NF-e */}
+                    {localCtes.length === 0 && onGerarCte && (() => {
+                        const allNfes = [
+                            ...localCtes.flatMap(c => c.nfes.map(nfe => ({ ...nfe }))),
+                            ...nfesDiretas.map(nfe => ({ ...nfe })),
+                        ];
+                        const hasNfe = allNfes.length > 0;
+                        return (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className={`w-full gap-2 ${!hasNfe ? 'opacity-50 cursor-not-allowed' : 'border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/20'}`}
+                                                disabled={!hasNfe || gerandoCte}
+                                                onClick={onGerarCte}
+                                            >
+                                                {gerandoCte ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                                                {gerandoCte ? 'Gerando CT-e...' : 'Gerar CT-e'}
+                                            </Button>
+                                        </div>
+                                    </TooltipTrigger>
+                                    {!hasNfe && (
+                                        <TooltipContent>
+                                            <p>Aguardando embarcador anexar NF-e</p>
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
+                            </TooltipProvider>
+                        );
+                    })()}
                 </section>
             )}
 

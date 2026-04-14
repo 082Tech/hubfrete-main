@@ -375,6 +375,7 @@ function DetailPanel({
   const [unlinkedNfes, setUnlinkedNfes] = useState<any[]>([]);
   const [docsRefreshKey, setDocsRefreshKey] = useState(0);
   const [gerandoCte, setGerandoCte] = useState(false);
+  const [gerandoMdfe, setGerandoMdfe] = useState(false);
 
   // Buscar status da viagem caso não venha nas props
   const { data: fetchedViagemStatus } = useQuery({
@@ -474,14 +475,14 @@ function DetailPanel({
 
     if (nextStatus.status === 'entregue') {
       setEntregueDialogOpen(true);
-    } else if (nextStatus.status === 'saiu_para_entrega') {
-      // Check if NF-e is attached before allowing transition
+    } else if (nextStatus.status === 'em_transito') {
+      // Check if NF-e is attached before allowing transition to em_transito
       setCheckingNfe(true);
       try {
         const { hasNfeAttached } = await import('@/lib/documentHelpers');
         const hasNfe = await hasNfeAttached(entrega.id);
         if (!hasNfe) {
-          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de sair para destino.');
+          setNfeBlockMessage('NF-e obrigatória — Aguardando o embarcador anexar a Nota Fiscal antes de seguir em trânsito.');
           setCheckingNfe(false);
           return;
         }
@@ -523,6 +524,40 @@ function DetailPanel({
       toast.error(`Erro ao gerar CT-e: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setGerandoCte(false);
+    }
+  };
+
+  const handleGerarMdfe = async () => {
+    if (!entrega) return;
+    setGerandoMdfe(true);
+    try {
+      // Get viagem_id for this entrega
+      const { data: veData } = await supabase
+        .from('viagem_entregas')
+        .select('viagem_id')
+        .eq('entrega_id', entrega.id)
+        .limit(1)
+        .maybeSingle();
+      
+      if (!veData?.viagem_id) {
+        toast.error('Viagem não encontrada para esta entrega');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('focusnfe-mdfe', {
+        body: { action: 'emitir', viagem_id: veData.viagem_id },
+      });
+      if (error) throw error;
+      if (data?.erro || data?.error) {
+        toast.error(`Erro ao gerar MDF-e: ${data.erro || data.error || data.mensagem}`);
+      } else {
+        toast.success('MDF-e enviado para processamento com sucesso!');
+        refreshDocs();
+      }
+    } catch (err: any) {
+      toast.error(`Erro ao gerar MDF-e: ${err.message || 'Erro desconhecido'}`);
+    } finally {
+      setGerandoMdfe(false);
     }
   };
 
@@ -856,6 +891,8 @@ function DetailPanel({
               canhotoUrl={entrega.canhoto_url || null}
               outrosDocumentos={entrega.outros_documentos || []}
               onRefresh={refreshDocs}
+              onGerarCte={handleGerarCte}
+              gerandoCte={gerandoCte}
             />
           </div>
 
@@ -982,9 +1019,13 @@ function DetailPanel({
                   <Paperclip className="w-4 h-4 mr-2" />
                   Anexar documentos
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleGerarCte} disabled={gerandoCte || existingCtes.length > 0}>
+                <DropdownMenuItem onClick={handleGerarCte} disabled={gerandoCte || existingCtes.length > 0 || unlinkedNfes.length === 0}>
                   {gerandoCte ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileCode className="w-4 h-4 mr-2" />}
-                  {gerandoCte ? 'Gerando CT-e...' : existingCtes.length > 0 ? 'CT-e já emitido' : 'Gerar CT-e'}
+                  {gerandoCte ? 'Gerando CT-e...' : existingCtes.length > 0 ? 'CT-e já emitido' : unlinkedNfes.length === 0 ? 'CT-e (aguardando NF-e)' : 'Gerar CT-e'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleGerarMdfe} disabled={gerandoMdfe || existingCtes.length === 0}>
+                  {gerandoMdfe ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
+                  {gerandoMdfe ? 'Gerando MDF-e...' : existingCtes.length === 0 ? 'MDF-e (aguardando CT-e)' : 'Gerar MDF-e'}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-destructive focus:text-destructive">
