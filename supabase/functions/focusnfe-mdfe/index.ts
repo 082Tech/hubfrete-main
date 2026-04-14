@@ -12,18 +12,33 @@ serve(async (req) => {
   }
 
   try {
-    const FOCUS_NFE_TOKEN = Deno.env.get("FOCUS_NFE_TOKEN");
+    const FOCUS_NFE_TOKEN_GLOBAL = Deno.env.get("FOCUS_NFE_TOKEN");
+    if (!FOCUS_NFE_TOKEN_GLOBAL) throw new Error("FOCUS_NFE_TOKEN is not configured");
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { action, viagem_id, ref, mdfe_data } = await req.json();
+    const { action, viagem_id, ref } = await req.json();
 
-    const authHeader = "Basic " + btoa(FOCUS_NFE_TOKEN + ":");
-    
     // AMBIENTE DA API: Alterne entre homologacao e api (produção)
     const FOCUS_BASE_URL = "https://homologacao.focusnfe.com.br";
     // const FOCUS_BASE_URL = "https://api.focusnfe.com.br";
+
+    // Helper: get empresa-specific FocusNFe token (falls back to global)
+    async function getEmpresaToken(empresaId: number): Promise<string> {
+      const { data: empresa } = await supabase
+        .from("empresas")
+        .select("\"token-focus\"")
+        .eq("id", empresaId)
+        .single();
+      
+      const token = empresa?.["token-focus"];
+      if (token) return token;
+      
+      console.warn(`Empresa ${empresaId} sem token-focus, usando token global`);
+      return FOCUS_NFE_TOKEN_GLOBAL!;
+    }
 
     switch (action) {
       case "emitir": {
@@ -48,6 +63,12 @@ serve(async (req) => {
 
         if (!viagem) throw new Error("Viagem não encontrada");
 
+        // Get empresa token
+        const empresaId = viagem.motorista?.empresa_id;
+        if (!empresaId) throw new Error("Motorista não vinculado a uma empresa");
+        const empresaToken = await getEmpresaToken(empresaId);
+        const authHeader = "Basic " + btoa(empresaToken + ":");
+
         // 2. Collect CT-e keys
         const ctes = viagem.entregas
           .flatMap((ve: any) => ve.entrega.ctes)
@@ -56,15 +77,23 @@ serve(async (req) => {
 
         if (ctes.length === 0) throw new Error("Nenhum CT-e autorizado encontrado para esta viagem");
 
-        // 3. Build MDF-e Payload (Simplified)
+        // 3. Build MDF-e Payload
         const uniqueRef = ref || `mdfe-${viagem_id}-${Date.now()}`;
+
+        // Fetch empresa data for emitente
+        const { data: empresa } = await supabase
+          .from("empresas")
+          .select("cnpj_matriz, razao_social, inscricao_estadual")
+          .eq("id", empresaId)
+          .single();
+
         const payload = {
           data_emissao: new Date().toISOString(),
-          tipo_emitente: 1, // Prestador de serviço de transporte
-          modal: 1, // Rodoviário
+          tipo_emitente: 1,
+          modal: 1,
           serie: "1",
           numero: viagem.codigo.replace(/\D/g, ""),
-          cnpj_emitente: "00000000000000", // Should come from empresa
+          cnpj_emitente: (empresa?.cnpj_matriz || "").replace(/\D/g, ""),
           uf_inicio: "SP",
           uf_fim: "SP",
           placa: viagem.veiculo?.placa,
@@ -95,7 +124,7 @@ serve(async (req) => {
             viagem_id,
             focus_ref: uniqueRef,
             status: result.status || "processando",
-            empresa_id: viagem.motorista?.empresa_id
+            empresa_id: empresaId
           });
         }
 
@@ -108,7 +137,7 @@ serve(async (req) => {
         // Find the active manifesto
         const { data: activeManifesto } = await supabase
           .from("mdfes")
-          .select("id, focus_ref, status")
+          .select("id, focus_ref, status, empresa_id")
           .eq("viagem_id", viagem_id)
           .in("status", ["processando", "autorizado"])
           .order("created_at", { ascending: false })
@@ -117,7 +146,12 @@ serve(async (req) => {
 
         if (!activeManifesto) throw new Error("Nenhum MDF-e ativo encontrado para encerrar");
 
-        // Call FocusNFe to encerrar
+        // Get empresa token
+        const empresaToken = activeManifesto.empresa_id 
+          ? await getEmpresaToken(activeManifesto.empresa_id)
+          : FOCUS_NFE_TOKEN_GLOBAL!;
+        const authHeader = "Basic " + btoa(empresaToken + ":");
+
         const encerrarRef = activeManifesto.focus_ref;
         const response = await fetch(`${FOCUS_BASE_URL}/v2/mdfes/${encerrarRef}`, {
           method: "DELETE",
@@ -126,7 +160,6 @@ serve(async (req) => {
 
         const result = await response.json();
 
-        // Update local DB
         await supabase
           .from("mdfes")
           .update({ status: "encerrado", encerrado_at: new Date().toISOString() })
@@ -137,6 +170,18 @@ serve(async (req) => {
 
       case "consultar": {
         if (!ref) throw new Error("ref is required");
+
+        // Try to find empresa_id from the mdfe record
+        const { data: mdfe } = await supabase
+          .from("mdfes")
+          .select("empresa_id")
+          .eq("focus_ref", ref)
+          .maybeSingle();
+
+        const empresaToken = mdfe?.empresa_id
+          ? await getEmpresaToken(mdfe.empresa_id)
+          : FOCUS_NFE_TOKEN_GLOBAL!;
+        const authHeader = "Basic " + btoa(empresaToken + ":");
 
         const response = await fetch(`${FOCUS_BASE_URL}/v2/mdfes/${ref}`, {
           method: "GET",
