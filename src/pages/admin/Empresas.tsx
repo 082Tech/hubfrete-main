@@ -16,6 +16,9 @@ import {
   User,
   UserPlus,
   Landmark,
+  Cloud,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -95,6 +98,7 @@ type Empresa = {
   created_at: string;
   logo_url: string | null;
   comissao_hubfrete_percent: number | null;
+  'token-focus': string | null;
   filiais: Filial[];
   _count: {
     filiais: number;
@@ -140,6 +144,8 @@ export default function Empresas() {
   // User dialog states
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
   const [bankTarget, setBankTarget] = useState<{ type: 'empresa'; id: number; nome: string } | null>(null);
+  const [focusDialogOpen, setFocusDialogOpen] = useState(false);
+  const [focusRegistering, setFocusRegistering] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -401,6 +407,30 @@ export default function Empresas() {
   const openAddUserDialog = (empresa: Empresa) => {
     setSelectedEmpresa(empresa);
     setAddUserDialogOpen(true);
+  };
+
+  const openFocusDialog = (empresa: Empresa) => {
+    setSelectedEmpresa(empresa);
+    setFocusDialogOpen(true);
+  };
+
+  const handleFocusRegister = async () => {
+    if (!selectedEmpresa) return;
+    setFocusRegistering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('focusnfe-empresa', {
+        body: { action: 'cadastrar', empresa_id: selectedEmpresa.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(data?.message || 'Empresa cadastrada na FocusNFe!');
+      setFocusDialogOpen(false);
+      fetchEmpresas();
+    } catch (err: any) {
+      toast.error('Erro ao cadastrar: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setFocusRegistering(false);
+    }
   };
 
   const toggleExpanded = (empresaId: number) => {
@@ -729,10 +759,21 @@ export default function Empresas() {
                                   Editar
                                 </DropdownMenuItem>
                                 {empresa.tipo === 'TRANSPORTADORA' && (
-                                  <DropdownMenuItem onClick={() => setBankTarget({ type: 'empresa', id: empresa.id, nome: empresa.nome || '—' })}>
-                                    <Landmark className="w-4 h-4 mr-2" />
-                                    Dados Bancários
-                                  </DropdownMenuItem>
+                                  <>
+                                    <DropdownMenuItem onClick={() => setBankTarget({ type: 'empresa', id: empresa.id, nome: empresa.nome || '—' })}>
+                                      <Landmark className="w-4 h-4 mr-2" />
+                                      Dados Bancários
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openFocusDialog(empresa)}>
+                                      <Cloud className="w-4 h-4 mr-2" />
+                                      Fiscal / FocusNFe
+                                      {empresa['token-focus'] ? (
+                                        <CheckCircle2 className="w-3 h-3 ml-auto text-primary" />
+                                      ) : (
+                                        <AlertCircle className="w-3 h-3 ml-auto text-amber-500" />
+                                      )}
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
@@ -987,6 +1028,50 @@ export default function Empresas() {
         open={!!bankTarget}
         onOpenChange={(open) => { if (!open) setBankTarget(null); }}
       />
+
+      {/* FocusNFe Dialog */}
+      <Dialog open={focusDialogOpen} onOpenChange={setFocusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Cloud className="w-5 h-5" />
+              Fiscal / FocusNFe
+            </DialogTitle>
+            <DialogDescription>
+              Status da integração fiscal para {selectedEmpresa?.nome || '—'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {selectedEmpresa?.['token-focus'] ? (
+              <div className="flex items-start gap-3 p-4 rounded-lg border border-primary/30 bg-primary/5">
+                <CheckCircle2 className="w-5 h-5 text-primary mt-0.5" />
+                <div>
+                  <p className="font-medium text-foreground">Empresa cadastrada na FocusNFe</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Pronta para emitir CT-e e MDF-e automaticamente.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-500/30 bg-amber-500/5">
+                  <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-foreground">Não cadastrada na FocusNFe</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Cadastre para habilitar emissão de CT-e e MDF-e. Certifique-se de que a empresa possui CNPJ, endereço da matriz e certificado digital preenchidos.
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={handleFocusRegister} disabled={focusRegistering} className="w-full gap-2">
+                  {focusRegistering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+                  Cadastrar na FocusNFe
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

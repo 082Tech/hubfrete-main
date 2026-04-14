@@ -21,9 +21,13 @@ serve(async (req) => {
 
     const { action, viagem_id, ref } = await req.json();
 
-    // AMBIENTE DA API: Alterne entre homologacao e api (produção)
-    const FOCUS_BASE_URL = "https://homologacao.focusnfe.com.br";
-    // const FOCUS_BASE_URL = "https://api.focusnfe.com.br";
+    // Auto-detect environment: dev Supabase → homologação, prod → produção
+    const DEV_PROJECT_REF = "ublyithvarvtqbwmxtyh";
+    const isDevEnv = SUPABASE_URL.includes(DEV_PROJECT_REF);
+    const FOCUS_BASE_URL = isDevEnv
+      ? "https://homologacao.focusnfe.com.br"
+      : "https://api.focusnfe.com.br";
+    console.log(`FocusNFe environment: ${isDevEnv ? "HOMOLOGAÇÃO" : "PRODUÇÃO"}`);
 
     // Helper: get empresa-specific FocusNFe token (falls back to global)
     async function getEmpresaToken(empresaId: number): Promise<string> {
