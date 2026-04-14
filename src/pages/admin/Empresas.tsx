@@ -144,6 +144,8 @@ export default function Empresas() {
   // User dialog states
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
   const [bankTarget, setBankTarget] = useState<{ type: 'empresa'; id: number; nome: string } | null>(null);
+  const [focusDialogOpen, setFocusDialogOpen] = useState(false);
+  const [focusRegistering, setFocusRegistering] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
