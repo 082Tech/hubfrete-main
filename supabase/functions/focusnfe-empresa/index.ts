@@ -44,12 +44,23 @@ serve(async (req) => {
 
         if (empError || !empresa) throw new Error("Empresa não encontrada: " + empError?.message);
 
-        // Check if already registered
-        if (empresa["token-focus"]) {
-          return new Response(JSON.stringify({ 
-            message: "Empresa já cadastrada na FocusNFe", 
-            token: empresa["token-focus"] 
-          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        // Check if already registered (skip if force=true)
+        if (empresa["token-focus"] && !force) {
+          // Verify on FocusNFe if actually exists
+          const cnpjCheck = (empresa.cnpj_matriz || "").replace(/\D/g, "");
+          const verifyRes = await fetch(`${FOCUS_BASE_URL}/v2/empresas/${cnpjCheck}`, {
+            method: "GET",
+            headers: { "Authorization": authHeader },
+          });
+          if (verifyRes.ok) {
+            return new Response(JSON.stringify({ 
+              message: "Empresa já cadastrada na FocusNFe", 
+              token: empresa["token-focus"] 
+            }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+          // Not found on FocusNFe — clear stale token and proceed with registration
+          console.log("Token exists but empresa not found on FocusNFe, re-registering...");
+          await supabase.from("empresas").update({ "token-focus": null }).eq("id", empresa_id);
         }
 
         // 2. Fetch filial matriz for address
