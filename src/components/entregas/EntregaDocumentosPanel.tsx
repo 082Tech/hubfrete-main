@@ -155,11 +155,11 @@ function StagingList({
 
 // ─── DropZone ─────────────────────────────────────────────────────────────────
 function DropZone({
-    label, hint, accentColor, inputRef, multiple = false, onFiles,
+    label, hint, accentColor, inputRef, multiple = false, onFiles, accept = ".pdf,.xml,.jpg,.jpeg,.png",
 }: {
     label: string; hint: string; accentColor: string;
     inputRef: React.RefObject<HTMLInputElement>; multiple?: boolean;
-    onFiles: (files: File[]) => void;
+    onFiles: (files: File[]) => void; accept?: string;
 }) {
     const [dragging, setDragging] = useState(false);
 
@@ -173,7 +173,7 @@ function DropZone({
             onClick={() => inputRef.current?.click()}
         >
             <input
-                ref={inputRef} type="file" accept=".pdf,.xml,.jpg,.jpeg,.png" multiple={multiple} className="hidden"
+                ref={inputRef} type="file" accept={accept} multiple={multiple} className="hidden"
                 onChange={(e) => { if (e.target.files?.length) onFiles(Array.from(e.target.files)); e.target.value = ''; }}
             />
             <div className="flex flex-col items-center justify-center py-5 px-3 gap-1" onClick={(e) => e.stopPropagation()}>
