@@ -375,7 +375,7 @@ function DetailPanel({
   const [unlinkedNfes, setUnlinkedNfes] = useState<any[]>([]);
   const [docsRefreshKey, setDocsRefreshKey] = useState(0);
   const [gerandoCte, setGerandoCte] = useState(false);
-  const [gerandoMdfe, setGerandoMdfe] = useState(false);
+  
 
   // Buscar status da viagem caso não venha nas props
   const { data: fetchedViagemStatus } = useQuery({
@@ -527,39 +527,6 @@ function DetailPanel({
     }
   };
 
-  const handleGerarMdfe = async () => {
-    if (!entrega) return;
-    setGerandoMdfe(true);
-    try {
-      // Get viagem_id for this entrega
-      const { data: veData } = await supabase
-        .from('viagem_entregas')
-        .select('viagem_id')
-        .eq('entrega_id', entrega.id)
-        .limit(1)
-        .maybeSingle();
-      
-      if (!veData?.viagem_id) {
-        toast.error('Viagem não encontrada para esta entrega');
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('focusnfe-mdfe', {
-        body: { action: 'emitir', viagem_id: veData.viagem_id },
-      });
-      if (error) throw error;
-      if (data?.erro || data?.error) {
-        toast.error(`Erro ao gerar MDF-e: ${data.erro || data.error || data.mensagem}`);
-      } else {
-        toast.success('MDF-e enviado para processamento com sucesso!');
-        refreshDocs();
-      }
-    } catch (err: any) {
-      toast.error(`Erro ao gerar MDF-e: ${err.message || 'Erro desconhecido'}`);
-    } finally {
-      setGerandoMdfe(false);
-    }
-  };
 
   const docsCheck = checkRequiredDocuments(entrega);
 
