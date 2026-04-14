@@ -759,10 +759,21 @@ export default function Empresas() {
                                   Editar
                                 </DropdownMenuItem>
                                 {empresa.tipo === 'TRANSPORTADORA' && (
-                                  <DropdownMenuItem onClick={() => setBankTarget({ type: 'empresa', id: empresa.id, nome: empresa.nome || '—' })}>
-                                    <Landmark className="w-4 h-4 mr-2" />
-                                    Dados Bancários
-                                  </DropdownMenuItem>
+                                  <>
+                                    <DropdownMenuItem onClick={() => setBankTarget({ type: 'empresa', id: empresa.id, nome: empresa.nome || '—' })}>
+                                      <Landmark className="w-4 h-4 mr-2" />
+                                      Dados Bancários
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openFocusDialog(empresa)}>
+                                      <Cloud className="w-4 h-4 mr-2" />
+                                      Fiscal / FocusNFe
+                                      {empresa['token-focus'] ? (
+                                        <CheckCircle2 className="w-3 h-3 ml-auto text-primary" />
+                                      ) : (
+                                        <AlertCircle className="w-3 h-3 ml-auto text-amber-500" />
+                                      )}
+                                    </DropdownMenuItem>
+                                  </>
                                 )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
