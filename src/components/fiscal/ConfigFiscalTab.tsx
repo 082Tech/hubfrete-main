@@ -596,34 +596,6 @@ export function ConfigFiscalTab() {
             </div>
           </div>
 
-          <Separator />
-
-          <div className="space-y-2">
-            <Label>Ambiente</Label>
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant={config.ambiente === 2 ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setConfig(prev => ({ ...prev, ambiente: 2 }))}
-              >
-                <Receipt className="w-4 h-4 mr-2" />
-                Homologação
-              </Button>
-              <Button
-                type="button"
-                variant={config.ambiente === 1 ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setConfig(prev => ({ ...prev, ambiente: 1 }))}
-              >
-                <Receipt className="w-4 h-4 mr-2" />
-                Produção
-              </Button>
-              {config.ambiente === 2 && (
-                <Badge variant="secondary">Sem valor fiscal</Badge>
-              )}
-            </div>
-          </div>
         </CardContent>
       </Card>
 
