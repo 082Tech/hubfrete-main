@@ -1023,10 +1023,6 @@ function DetailPanel({
                   {gerandoCte ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileCode className="w-4 h-4 mr-2" />}
                   {gerandoCte ? 'Gerando CT-e...' : existingCtes.length > 0 ? 'CT-e já emitido' : unlinkedNfes.length === 0 ? 'CT-e (aguardando NF-e)' : 'Gerar CT-e'}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleGerarMdfe} disabled={gerandoMdfe || existingCtes.length === 0}>
-                  {gerandoMdfe ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
-                  {gerandoMdfe ? 'Gerando MDF-e...' : existingCtes.length === 0 ? 'MDF-e (aguardando CT-e)' : 'Gerar MDF-e'}
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-destructive focus:text-destructive">
                   <Ban className="w-4 h-4 mr-2" />
