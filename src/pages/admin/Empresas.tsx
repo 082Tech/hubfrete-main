@@ -409,6 +409,30 @@ export default function Empresas() {
     setAddUserDialogOpen(true);
   };
 
+  const openFocusDialog = (empresa: Empresa) => {
+    setSelectedEmpresa(empresa);
+    setFocusDialogOpen(true);
+  };
+
+  const handleFocusRegister = async () => {
+    if (!selectedEmpresa) return;
+    setFocusRegistering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('focusnfe-empresa', {
+        body: { action: 'cadastrar', empresa_id: selectedEmpresa.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(data?.message || 'Empresa cadastrada na FocusNFe!');
+      setFocusDialogOpen(false);
+      fetchEmpresas();
+    } catch (err: any) {
+      toast.error('Erro ao cadastrar: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setFocusRegistering(false);
+    }
+  };
+
   const toggleExpanded = (empresaId: number) => {
     setExpandedRows(prev => {
       const next = new Set(prev);
