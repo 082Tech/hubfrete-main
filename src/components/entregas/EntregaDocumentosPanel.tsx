@@ -532,7 +532,10 @@ export function EntregaDocumentosPanel({
     const nfeRef = useRef<HTMLInputElement>(null);
 
     const handleNfeFiles = (files: File[]) => {
-        const { valid, errors } = validateFiles(files);
+        const xmlOnly = files.filter(f => f.type === 'application/xml' || f.type === 'text/xml' || f.name.toLowerCase().endsWith('.xml'));
+        const rejected = files.length - xmlOnly.length;
+        if (rejected > 0) toast.error(`${rejected} arquivo(s) rejeitado(s). Apenas XML é permitido para NF-e.`);
+        const { valid, errors } = validateFiles(xmlOnly);
         errors.forEach((e) => toast.error(e));
         if (valid.length) setStagingNfes((prev) => [...prev, ...toStaging(valid)]);
     };
@@ -553,8 +556,51 @@ export function EntregaDocumentosPanel({
                 const ext = s.file.name.split('.').pop();
                 const path = `nfes/${entregaId}/${Date.now()}_${Math.random().toString(36).slice(7)}.${ext}`;
                 const url = await uploadFile(s.file, path);
-                const { error } = await (supabase as any).from('nfes').insert({ entrega_id: entregaId, cte_id: null, url });
+
+                // Parse XML to extract chave_acesso
+                let chaveAcesso: string | null = null;
+                let numero: string | null = null;
+                let serie: string | null = null;
+                let valorTotal: number | null = null;
+                try {
+                    const xmlText = await s.file.text();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                    const infNFe = xmlDoc.querySelector('infNFe');
+                    if (infNFe) {
+                        const id = infNFe.getAttribute('Id') || '';
+                        chaveAcesso = id.replace(/^NFe/, '');
+                    }
+                    const nNF = xmlDoc.querySelector('nNF');
+                    if (nNF) numero = nNF.textContent;
+                    const serieEl = xmlDoc.querySelector('ide > serie');
+                    if (serieEl) serie = serieEl.textContent;
+                    const vNF = xmlDoc.querySelector('ICMSTot > vNF');
+                    if (vNF) valorTotal = parseFloat(vNF.textContent || '0');
+                } catch (parseErr) {
+                    console.warn('Erro ao parsear XML da NF-e:', parseErr);
+                }
+
+                const { error } = await (supabase as any).from('nfes').insert({
+                    entrega_id: entregaId,
+                    cte_id: null,
+                    url,
+                    chave_acesso: chaveAcesso,
+                    numero,
+                    serie,
+                    valor_total: valorTotal,
+                });
                 if (error) throw error;
+
+                // Trigger FocusNFe validation if we have a chave
+                if (chaveAcesso) {
+                    supabase.functions.invoke('validate-nfe', {
+                        body: { chave_acesso: chaveAcesso, xml_path: path }
+                    }).then(({ error: valErr }) => {
+                        if (valErr) console.error('Erro na validação NF-e:', valErr);
+                    });
+                }
+
                 ok++;
             }
             if (ok > 0) {
@@ -703,8 +749,8 @@ export function EntregaDocumentosPanel({
                         <StagingList items={stagingNfes} onRemove={removeNfeStaging} onConfirm={confirmNfeUpload} uploading={uploadingNfe} label="NF-es" />
                     ) : (
                         <DropZone
-                            label="Arraste PDF ou XML aqui, ou clique para selecionar"
-                            hint="PDF, XML ou imagem • até 10 MB • múltiplos permitidos"
+                            label="Arraste o XML da NF-e aqui, ou clique para selecionar"
+                            hint="Apenas XML • até 10 MB • múltiplos permitidos"
                             accentColor="border-muted-foreground/20 hover:border-primary/40"
                             inputRef={nfeRef} multiple onFiles={handleNfeFiles}
                         />
