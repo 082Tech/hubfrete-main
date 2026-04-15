@@ -2306,6 +2306,8 @@ export type Database = {
           protocolo: string | null
           serie: string | null
           status: string | null
+          uf_fim: string | null
+          uf_inicio: string | null
           viagem_id: string | null
           xml_content: string | null
           xml_path: string | null
@@ -2327,6 +2329,8 @@ export type Database = {
           protocolo?: string | null
           serie?: string | null
           status?: string | null
+          uf_fim?: string | null
+          uf_inicio?: string | null
           viagem_id?: string | null
           xml_content?: string | null
           xml_path?: string | null
@@ -2348,6 +2352,8 @@ export type Database = {
           protocolo?: string | null
           serie?: string | null
           status?: string | null
+          uf_fim?: string | null
+          uf_inicio?: string | null
           viagem_id?: string | null
           xml_content?: string | null
           xml_path?: string | null
