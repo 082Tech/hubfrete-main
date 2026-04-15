@@ -594,7 +594,7 @@ export function ViagemDetailPanel({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Botão principal: Iniciar ou Finalizar */}
+          {/* Botão principal: Iniciar → Gerar Documentos → Finalizar */}
           {isViagemAguardando ? (
             <Button
               className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700 text-white"
@@ -609,32 +609,42 @@ export function ViagemDetailPanel({
               Iniciar Viagem
             </Button>
           ) : isViagemEmAndamento ? (
-            <Button
-              className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
-              disabled={isProcessingViagem}
-              onClick={() => {
-                if (!entregasValidation.canFinalize) {
-                  const issues: string[] = [];
-                  if (entregasValidation.pendingCount > 0) {
-                    issues.push(`${entregasValidation.pendingCount} entrega(s) pendente(s): ${entregasValidation.pendingEntregas.join(', ')}`);
+            <div className="flex-1 flex gap-2">
+              <Button
+                className="flex-1 gap-2"
+                variant="outline"
+                onClick={() => setGerarDocsDialogOpen(true)}
+              >
+                <FileText className="w-4 h-4" />
+                Gerar Documentos
+              </Button>
+              <Button
+                className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
+                disabled={isProcessingViagem}
+                onClick={() => {
+                  if (!entregasValidation.canFinalize) {
+                    const issues: string[] = [];
+                    if (entregasValidation.pendingCount > 0) {
+                      issues.push(`${entregasValidation.pendingCount} entrega(s) pendente(s): ${entregasValidation.pendingEntregas.join(', ')}`);
+                    }
+                    issues.push(...entregasValidation.docIssues);
+                    toast.error('Não é possível finalizar a viagem', {
+                      description: issues.map(i => `• ${i}`).join('\n'),
+                      duration: 8000,
+                    });
+                    return;
                   }
-                  issues.push(...entregasValidation.docIssues);
-                  toast.error('Não é possível finalizar a viagem', {
-                    description: issues.map(i => `• ${i}`).join('\n'),
-                    duration: 8000,
-                  });
-                  return;
-                }
-                setFinalizarDialogOpen(true);
-              }}
-            >
-              {isProcessingViagem ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle className="w-4 h-4" />
-              )}
-              Finalizar Viagem
-            </Button>
+                  setFinalizarDialogOpen(true);
+                }}
+              >
+                {isProcessingViagem ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
+                Finalizar Viagem
+              </Button>
+            </div>
           ) : null}
         </div>
       )}
