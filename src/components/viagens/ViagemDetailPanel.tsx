@@ -129,6 +129,7 @@ export function ViagemDetailPanel({
   // iniciarDialogOpen removed - trips now start as aguardando
   const [finalizarDialogOpen, setFinalizarDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [gerarDocsDialogOpen, setGerarDocsDialogOpen] = useState(false);
   const [isProcessingViagem, setIsProcessingViagem] = useState(false);
   const [trackingPoints, setTrackingPoints] = useState<Array<{ lat: number; lng: number; tracked_at: string; speed: number | null; status: string | null }>>([]);
 
