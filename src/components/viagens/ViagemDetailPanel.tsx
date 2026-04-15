@@ -712,6 +712,17 @@ export function ViagemDetailPanel({
         fileUrl={previewDocUrl}
         title="Documento"
       />
+
+      {/* Dialog para gerar documentos fiscais */}
+      {viagem && (
+        <GerarDocumentosDialog
+          open={gerarDocsDialogOpen}
+          onOpenChange={setGerarDocsDialogOpen}
+          viagemId={viagem.id}
+          viagemCodigo={viagem.codigo}
+          onSuccess={onRefresh}
+        />
+      )}
     </div>
   );
 }
