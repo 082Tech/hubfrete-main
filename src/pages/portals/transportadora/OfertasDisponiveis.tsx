@@ -397,6 +397,10 @@ export default function OfertasDisponiveis() {
     return Array.from(tipos) as string[];
   }, [veiculosFrota]);
 
+  // Batch fetch dos preços por eixo (ANTT) das ofertas listadas
+  const cargaIdsParaPrecos = useMemo(() => cargas.map((c) => c.id), [cargas]);
+  const { data: precosPorEixoMap } = useCargaPrecosEixoBatch(cargaIdsParaPrecos);
+
   // Auto-selecionar filtros baseado na frota ao carregar
   useEffect(() => {
     if (!tiposVeiculoInitialized && tiposVeiculoFrota.length > 0) {
