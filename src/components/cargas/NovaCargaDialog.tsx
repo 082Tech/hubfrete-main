@@ -738,6 +738,7 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
         );
       }
 
+      case 'requisitos':
         return (
           <div className="space-y-4">
             <div className="space-y-2">
