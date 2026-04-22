@@ -48,6 +48,7 @@ const titlePermissionMap: Record<string, string[]> = {
   'Chamados': ['chamados'],
   'Logs': ['logs'],
   'Cargos': ['cargos'],
+  'Tabela ANTT': ['cargos'],
 };
 
 type AdminRole = 'super_admin' | 'admin' | 'suporte';
@@ -256,6 +257,12 @@ export function AdminSidebar({ adminUser, pendingCount = 0 }: AdminSidebarProps)
       icon: Shield,
       href: '/admin/cargos',
       roles: ['super_admin'],
+    },
+    {
+      title: 'Tabela ANTT',
+      icon: Route,
+      href: '/admin/tabela-antt',
+      roles: ['super_admin', 'admin'],
     },
   ];
 

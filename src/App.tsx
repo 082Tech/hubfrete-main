@@ -39,6 +39,7 @@ import ProvasEntregaAdmin from "./pages/admin/ProvasEntregaAdmin";
 import StorageExplorer from "./pages/admin/StorageExplorer";
 import Logs from "./pages/admin/Logs";
 import CargosAdmin from "./pages/admin/CargosAdmin";
+import TabelaANTT from "./pages/admin/TabelaANTT";
 
 import { AdminLayoutWrapper } from "./components/admin/AdminLayoutWrapper";
 import CadastroMotorista from "./pages/CadastroMotorista";
@@ -153,6 +154,7 @@ const App = () => {
                     <Route path="logs" element={<Logs />} />
                     <Route path="cargos" element={<CargosAdmin />} />
                     <Route path="financeiro" element={<AdminFinanceiro />} />
+                    <Route path="tabela-antt" element={<TabelaANTT />} />
                     
                   </Route>
                   <Route path="/cadastro/motorista" element={<CadastroMotorista />} />
