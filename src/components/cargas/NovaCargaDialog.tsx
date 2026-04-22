@@ -50,6 +50,8 @@ import { NecessidadesEspeciais } from './NecessidadesEspeciais';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ResumoSection } from './ResumoSection';
 import { VeiculoCarroceriaSelect } from './VeiculoCarroceriaSelect';
+import { PesoPrecificacaoTab, type PrecoEixoEntry } from './PesoPrecificacaoTab';
+import { categoriaAnttDeTipoCarga } from '@/lib/antt';
 import { cn } from '@/lib/utils';
 
 type TipoCarga = Database['public']['Enums']['tipo_carga'];
@@ -120,10 +122,10 @@ function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: 
 // ─── Tab definitions ─────────────────────────────────────────────────────────
 const TABS = [
   { id: 'dados', label: 'Dados', icon: Package },
-  { id: 'peso_frete', label: 'Peso & Frete', icon: Weight },
   { id: 'requisitos', label: 'Requisitos', icon: ClipboardList },
   { id: 'origem', label: 'Origem', icon: MapPin },
   { id: 'destino', label: 'Destino', icon: Truck },
+  { id: 'peso_precificacao', label: 'Peso & Precificação', icon: Weight },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -240,6 +242,8 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
   const [destinoData, setDestinoData] = useState<LocationData>(initialLocationData);
   const [agendamentoEntrega, setAgendamentoEntrega] = useState(false);
   const [linkAgendamento, setLinkAgendamento] = useState('');
+  const [precosEixo, setPrecosEixo] = useState<PrecoEixoEntry[]>([]);
+  const [distanciaKmCalculada, setDistanciaKmCalculada] = useState<number | null>(null);
 
   const resetDialogState = () => {
     form.reset();
@@ -251,6 +255,8 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
     setDestinoData(initialLocationData);
     setAgendamentoEntrega(false);
     setLinkAgendamento('');
+    setPrecosEixo([]);
+    setDistanciaKmCalculada(null);
     setActiveTab('dados');
   };
 
@@ -372,11 +378,6 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
         if (!result) toast.error('Preencha os campos obrigatórios desta etapa');
         return result;
       }
-      case 'peso_frete': {
-        const result = await form.trigger(['peso_kg']);
-        if (!result) toast.error('Peso é obrigatório');
-        return result;
-      }
       case 'requisitos':
         return true;
       case 'origem': {
@@ -388,6 +389,24 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
       }
       case 'destino':
         return validateLocations();
+      case 'peso_precificacao': {
+        const result = await form.trigger(['peso_kg']);
+        if (!result) {
+          toast.error('Peso é obrigatório');
+          return false;
+        }
+        // Hard block: se houver veículos selecionados e qualquer preço abaixo do piso, bloqueia
+        if (veiculosSelecionados.length > 0 && precosEixo.length > 0) {
+          const abaixoDoPiso = precosEixo.some(
+            (p) => (p.valor_por_tonelada ?? 0) < p.piso_por_tonelada,
+          );
+          if (abaixoDoPiso) {
+            toast.error('Há valores abaixo do piso ANTT. Ajuste antes de publicar.');
+            return false;
+          }
+        }
+        return true;
+      }
       default:
         return true;
     }
