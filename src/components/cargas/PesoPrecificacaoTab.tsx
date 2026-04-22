@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -64,6 +64,8 @@ export function PesoPrecificacaoTab({
   const { pisos, loading: loadingPisos } = useAnttPisos();
   const categoria = categoriaAnttDeTipoCarga(tipoCarga);
   const grupos = useMemo(() => agruparVeiculosPorEixos(veiculosSelecionados), [veiculosSelecionados]);
+  // Rastreia quais eixos o usuário editou manualmente — só esses preservam valor entre recálculos
+  const touchedEixosRef = useRef<Set<number>>(new Set());
 
   // Distância via OSRM
   const { route, loading: loadingRoute } = useOSRMRoute(origem, destino);
@@ -101,8 +103,10 @@ export function PesoPrecificacaoTab({
       const calc = calcularPisoMinimo({ pisos, categoria, eixos: g.eixos, distanciaKm, pesoKg });
       if (!calc) continue;
       const existing = precosEixo.find((p) => p.numero_eixos === g.eixos);
-      // Se o usuário já digitou um valor >= piso, mantém. Senão, preenche com o piso.
-      const valor = existing && existing.valor_por_tonelada != null && existing.valor_por_tonelada >= calc.pisoPorTonelada
+      const wasTouched = touchedEixosRef.current.has(g.eixos);
+      // Só preserva o valor digitado se o usuário tiver editado manualmente E o valor for >= piso.
+      // Caso contrário, sempre usa o piso ANTT recém calculado (atualiza ao mudar peso/distância).
+      const valor = wasTouched && existing && existing.valor_por_tonelada != null && existing.valor_por_tonelada >= calc.pisoPorTonelada
         ? existing.valor_por_tonelada
         : calc.pisoPorTonelada;
       next.push({
@@ -128,6 +132,7 @@ export function PesoPrecificacaoTab({
   }, [pisos, loadingPisos, categoria, distanciaKm, pesoKg, JSON.stringify(grupos)]);
 
   const handleValorChange = (eixos: number, valor: number | undefined) => {
+    touchedEixosRef.current.add(eixos);
     onPrecosEixoChange(
       precosEixo.map((p) =>
         p.numero_eixos === eixos ? { ...p, valor_por_tonelada: valor ?? null } : p,
