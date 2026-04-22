@@ -76,6 +76,8 @@ import RouteGoogleMap from '@/components/maps/RouteGoogleMap';
 import { createChatForEntrega } from '@/lib/chatService';
 import { ViagemSelector } from '@/components/viagens';
 import { savePlannedRoute } from '@/lib/savePlannedRoute';
+import { useCargaPrecosEixoBatch } from '@/hooks/useCargaPrecosEixo';
+import { PrecoOfertaBadge } from '@/components/cargas/PrecoOfertaBadge';
 
 interface VeiculoRequisitos {
   tipos_veiculo?: string[];
