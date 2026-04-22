@@ -113,12 +113,14 @@ export function PesoPrecificacaoTab({
         valor_por_km: calc.valorPorKm,
       });
     }
-    // só atualiza se mudou algo relevante
+    // Atualiza sempre que houver diferença em piso_total, piso_por_ton, valor_por_km ou valor sugerido
     const sameLen = next.length === precosEixo.length;
     const same = sameLen && next.every((n, i) => {
       const p = precosEixo[i];
       return p && p.numero_eixos === n.numero_eixos
         && p.piso_antt_calculado === n.piso_antt_calculado
+        && p.piso_por_tonelada === n.piso_por_tonelada
+        && p.valor_por_km === n.valor_por_km
         && p.valor_por_tonelada === n.valor_por_tonelada;
     });
     if (!same) onPrecosEixoChange(next);
