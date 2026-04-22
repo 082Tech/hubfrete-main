@@ -128,6 +128,45 @@ export type Database = {
           },
         ]
       }
+      antt_pisos: {
+        Row: {
+          ativo: boolean
+          categoria_carga: string
+          created_at: string
+          id: string
+          numero_eixos: number
+          observacao: string | null
+          updated_at: string
+          valor_por_km: number
+          valor_por_km_carga_lotacao: number | null
+          vigente_desde: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_carga: string
+          created_at?: string
+          id?: string
+          numero_eixos: number
+          observacao?: string | null
+          updated_at?: string
+          valor_por_km: number
+          valor_por_km_carga_lotacao?: number | null
+          vigente_desde?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_carga?: string
+          created_at?: string
+          id?: string
+          numero_eixos?: number
+          observacao?: string | null
+          updated_at?: string
+          valor_por_km?: number
+          valor_por_km_carga_lotacao?: number | null
+          vigente_desde?: string
+        }
+        Relationships: []
+      }
       auditoria_logs: {
         Row: {
           dados_anteriores: Json | null
@@ -213,6 +252,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "carga_eventos_carga_id_fkey"
+            columns: ["carga_id"]
+            isOneToOne: false
+            referencedRelation: "cargas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      carga_precos_eixo: {
+        Row: {
+          carga_id: string
+          categoria_antt: string | null
+          created_at: string
+          distancia_km: number | null
+          id: string
+          numero_eixos: number
+          piso_antt_calculado: number
+          updated_at: string
+          valor_por_tonelada: number
+        }
+        Insert: {
+          carga_id: string
+          categoria_antt?: string | null
+          created_at?: string
+          distancia_km?: number | null
+          id?: string
+          numero_eixos: number
+          piso_antt_calculado: number
+          updated_at?: string
+          valor_por_tonelada: number
+        }
+        Update: {
+          carga_id?: string
+          categoria_antt?: string | null
+          created_at?: string
+          distancia_km?: number | null
+          id?: string
+          numero_eixos?: number
+          piso_antt_calculado?: number
+          updated_at?: string
+          valor_por_tonelada?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carga_precos_eixo_carga_id_fkey"
             columns: ["carga_id"]
             isOneToOne: false
             referencedRelation: "cargas"
