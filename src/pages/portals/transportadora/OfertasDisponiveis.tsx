@@ -1508,22 +1508,18 @@ export default function OfertasDisponiveis() {
             </div>
             {(() => {
               const totalFrete = calcularFreteTotal(carga);
-              if (totalFrete === null) return null;
               const comissao = (carga.empresa as any)?.comissao_hubfrete_percent || 0;
               const freteLiquido = calcularFreteLiquido(totalFrete, comissao);
-
-                return (
-                  <div className="flex flex-col items-end gap-0.5">
-                    <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
-                      {formatCurrency(freteLiquido)}
-                    </div>
-                    {carga.tipo_precificacao === 'fixo' && comissao === 0 ? (
-                      <span className="text-xs text-muted-foreground">
-                        (Valor Fixo)
-                      </span>
-                    ) : null}
-                  </div>
-                );
+              const precosEixo = precosPorEixoMap?.get(carga.id);
+              return (
+                <PrecoOfertaBadge
+                  precos={precosEixo}
+                  tiposFrota={tiposVeiculoFrota}
+                  comissaoPercent={comissao}
+                  freteLiquidoFallback={freteLiquido}
+                  tipoPrecificacao={carga.tipo_precificacao}
+                />
+              );
             })()}
           </div>
 
