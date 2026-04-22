@@ -76,6 +76,8 @@ import RouteGoogleMap from '@/components/maps/RouteGoogleMap';
 import { createChatForEntrega } from '@/lib/chatService';
 import { ViagemSelector } from '@/components/viagens';
 import { savePlannedRoute } from '@/lib/savePlannedRoute';
+import { useCargaPrecosEixoBatch } from '@/hooks/useCargaPrecosEixo';
+import { PrecoOfertaBadge } from '@/components/cargas/PrecoOfertaBadge';
 
 interface VeiculoRequisitos {
   tipos_veiculo?: string[];
@@ -394,6 +396,10 @@ export default function OfertasDisponiveis() {
     const tipos = new Set(veiculosFrota.map(v => v.tipo));
     return Array.from(tipos) as string[];
   }, [veiculosFrota]);
+
+  // Batch fetch dos preços por eixo (ANTT) das ofertas listadas
+  const cargaIdsParaPrecos = useMemo(() => cargas.map((c) => c.id), [cargas]);
+  const { data: precosPorEixoMap } = useCargaPrecosEixoBatch(cargaIdsParaPrecos);
 
   // Auto-selecionar filtros baseado na frota ao carregar
   useEffect(() => {
@@ -1502,22 +1508,18 @@ export default function OfertasDisponiveis() {
             </div>
             {(() => {
               const totalFrete = calcularFreteTotal(carga);
-              if (totalFrete === null) return null;
               const comissao = (carga.empresa as any)?.comissao_hubfrete_percent || 0;
               const freteLiquido = calcularFreteLiquido(totalFrete, comissao);
-
-                return (
-                  <div className="flex flex-col items-end gap-0.5">
-                    <div className="flex items-center gap-1 text-sm font-semibold text-chart-2">
-                      {formatCurrency(freteLiquido)}
-                    </div>
-                    {carga.tipo_precificacao === 'fixo' && comissao === 0 ? (
-                      <span className="text-xs text-muted-foreground">
-                        (Valor Fixo)
-                      </span>
-                    ) : null}
-                  </div>
-                );
+              const precosEixo = precosPorEixoMap?.get(carga.id);
+              return (
+                <PrecoOfertaBadge
+                  precos={precosEixo}
+                  tiposFrota={tiposVeiculoFrota}
+                  comissaoPercent={comissao}
+                  freteLiquidoFallback={freteLiquido}
+                  tipoPrecificacao={carga.tipo_precificacao}
+                />
+              );
             })()}
           </div>
 
