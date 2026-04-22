@@ -1,102 +1,100 @@
 
 
-## Diagnóstico dos Logs Atuais
+# Frete Mínimo ANTT — Sugestão de preço por eixo na publicação
 
-**O que temos hoje:**
-- Trigger genérico (`fn_audit_trigger`) que salva `to_jsonb(OLD)` / `to_jsonb(NEW)` para 16 tabelas
-- UI mostra: UUID do usuário truncado, nome técnico da tabela, campos alterados como badges com nome da coluna do banco (`peso_kg`, `status`, `empresa_id`)
-- Detalhe: JSON bruto lado a lado
+## O que muda na UX do modal
 
-**O que falta para um sistema desse nível:**
-1. **Nome do usuário** em vez de UUID — não dá para saber quem fez a ação
-2. **Descrição legível da ação** — ex: "Alterou status da entrega ENT-042 de 'aguardando' para 'em_transito'" em vez de "UPDATE na tabela entregas, campo status"
-3. **Código do registro** — mostrar `VGM-005` ou `ENT-042` em vez de UUID
-4. **Labels dos campos em português** — `peso_kg` → "Peso (kg)", `status` → "Status"
-5. **Valores formatados no diff** — mostrar "antes: Aguardando → depois: Em Trânsito" em vez de JSON cru
-6. **Filtro por usuário** (dropdown com nomes)
-7. **IP / User-Agent** para rastreabilidade de segurança
+Reordena as abas do modal de Nova Oferta para deixar **Peso & Frete por último**, agora renomeada para **"Peso & Precificação"**. A ordem fica:
 
----
+1. Dados
+2. Requisitos (veículos/carrocerias)
+3. Origem
+4. Destino
+5. **Peso & Precificação** (nova última etapa)
 
-## Plano de Implementação
+Na nova última etapa, baseado nos veículos selecionados em Requisitos e na distância calculada origem→destino, o sistema mostra **um card por grupo de eixos** com:
 
-### 1. Enriquecer o trigger com contexto (Migration SQL)
+- Categoria (ex: "4 eixos — Truck", "6 eixos — Carreta", "9 eixos — Bitrem")
+- Distância calculada (km via OSRM)
+- **Piso ANTT calculado** (R$/km × km, e R$/ton equivalente baseado no peso)
+- Input editável já preenchido com o piso (embarcador pode subir o valor, mas não descer)
+- Badge verde quando ≥ piso, vermelha + bloqueio quando < piso
 
-Adicionar colunas à tabela `auditoria_logs`:
-- `usuario_nome` (text) — preenchido pelo trigger via lookup em `usuarios` ou `torre_users`
-- `registro_codigo` (text) — preenchido pelo trigger pegando o campo `codigo` do registro (se existir)
-- `ip_address` (text) — via `current_setting('request.headers', true)` do PostgREST
-- `descricao` (text) — frase legível gerada pelo trigger
+A oferta é publicada com **uma tabela de preços por categoria de eixos** em vez de um único `valor_frete_tonelada`. O motorista, ao aceitar, recebe automaticamente o valor correspondente ao seu veículo.
 
-Atualizar `fn_audit_trigger` para:
 ```text
-1. Buscar nome do usuário (usuarios.nome WHERE auth_user_id = auth.uid())
-2. Extrair codigo do registro (NEW.codigo ou OLD.codigo se existir)
-3. Extrair IP do header X-Forwarded-For
-4. Gerar descrição automática baseada na tabela + operação + campos alterados
+┌── Peso & Precificação ──────────────────────────┐
+│ Peso total: [____] kg    Distância: 487 km      │
+│ Tipo de carga ANTT: Carga Geral (auto)          │
+│                                                  │
+│ ┌─ 2 eixos (VUC, 3/4) ───── Piso: R$ 1.842 ──┐  │
+│ │ R$/ton sugerido: 92,10                      │  │
+│ │ [ R$ 92,10 ] ✓ Atende piso ANTT            │  │
+│ └────────────────────────────────────────────┘  │
+│ ┌─ 3 eixos (Toco) ───────── Piso: R$ 2.156 ──┐  │
+│ │ [ R$ 107,80 ] ✓                            │  │
+│ └────────────────────────────────────────────┘  │
+│ ┌─ 5 eixos (Carreta) ────── Piso: R$ 3.420 ──┐  │
+│ │ [ R$ 171,00 ] ✓                            │  │
+│ └────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────┘
 ```
 
-### 2. Mapeamento de campos legíveis (Frontend)
+## Backend / banco
 
-Criar um dicionário `fieldLabels` por tabela no frontend:
-```text
-entregas.status → "Status"
-entregas.motorista_id → "Motorista"
-cargas.peso_kg → "Peso (kg)"
-viagens.rota_planejada_polyline → "Rota Planejada"
-empresas.nome_fantasia → "Nome Fantasia"
-...
-```
+**Tabela `antt_pisos`** (editável pelo admin na Torre):
+- `id`, `categoria_carga` (geral, granel_solido, granel_liquido, frigorificada, perigosa, etc.)
+- `numero_eixos` (2, 3, 4, 5, 6, 7, 9)
+- `valor_por_km` (numeric) — coeficiente CCD (carga + deslocamento)
+- `valor_por_km_carga_lotacao` (opcional, segundo coeficiente CC)
+- `vigente_desde`, `ativo`
+- RLS: leitura para qualquer authenticated; escrita só admin (`is_admin`)
+- Seed inicial com Resolução ANTT vigente
 
-E um mapeamento de valores de enum:
-```text
-aguardando → "Aguardando"
-em_transito → "Em Trânsito"
-finalizada → "Finalizada"
-...
-```
+**Tabela `carga_precos_eixo`** (preço por grupo de eixos da oferta):
+- `id`, `carga_id` (FK), `numero_eixos`, `valor_por_tonelada`, `piso_antt_calculado`, `created_at`
+- RLS: mesma da `cargas`
 
-### 3. Reformular a UI dos Logs (Logs.tsx)
+**Mapeamento tipo de carga → categoria ANTT** (helper TS, sem DB):
+- `carga_seca/container/indivisivel` → `geral`
+- `granel_solido` → `granel_solido`
+- `granel_liquido` → `granel_liquido`
+- `refrigerada/congelada` → `frigorificada`
+- `perigosa` → `perigosa`
+- `viva` → `granel_solido` (aproximação ANTT)
 
-**Lista principal:**
-- Coluna "Usuário": mostrar `usuario_nome` (nome real) em vez de UUID
-- Coluna "Registro": mostrar `registro_codigo` (ex: ENT-042) com o UUID como tooltip
-- Coluna "Resumo": frase curta gerada (ex: "Atualizou status para Em Trânsito")
-- Manter filtros existentes + adicionar filtro por usuário (dropdown)
+**Mapeamento veículo → nº de eixos** (helper TS):
+- `vuc` → 2, `tres_quartos` → 2, `toco` → 3, `truck` → 3, `bitruck` → 4
+- `carreta` → 5, `carreta_ls/vanderleia` → 6, `bitrem` → 7, `rodotrem` → 9
 
-**Dialog de detalhes:**
-- Seção de cabeçalho: nome do usuário, IP, data/hora, tabela, operação
-- Seção de diff visual: em vez de JSON bruto, mostrar uma tabela campo-por-campo:
-  ```text
-  Campo           | Antes          | Depois
-  Status          | Aguardando     | Em Trânsito
-  Motorista       | —              | João Silva
-  ```
-- Campos sem alteração ficam colapsados
-- Manter opção de ver JSON bruto como fallback (colapsável)
+Veículos selecionados são agrupados por nº de eixos para gerar os cards.
 
-### 4. Tabelas faltando no audit
+**Trigger de validação no insert/update de `carga_precos_eixo`**: rejeita se `valor_por_tonelada × peso_ton < piso_antt_calculado` (hard block server-side).
 
-Avaliar adicionar triggers para tabelas que hoje não são auditadas mas são críticas:
-- `entrega_eventos`
-- `viagem_entregas`
-- `desvio_auditoria`
-- `company_invites`
-- `cargo_permissoes`
+## Aceite da carga
 
----
+Em `accept_carga_tx` / `aceitar_carga_v8`: quando há `carga_precos_eixo`, busca o preço correspondente ao nº de eixos do veículo do motorista e usa esse valor para calcular `valor_frete` da entrega. Mantém compatibilidade com ofertas antigas (sem registros em `carga_precos_eixo` → usa `valor_frete_tonelada` como hoje).
 
-## Arquivos Afetados
+## Admin (Torre)
 
-| Arquivo | Alteração |
-|---|---|
-| Nova migration SQL | Adicionar colunas + atualizar `fn_audit_trigger` |
-| `src/pages/admin/Logs.tsx` | Reformular UI: nome do usuário, código do registro, resumo legível, diff visual |
-| Novo `src/lib/auditLabels.ts` | Dicionários de labels de campos e valores por tabela |
+Nova página **Torre → Configurações → Tabela ANTT** para listar/editar `antt_pisos` por categoria + nº de eixos, com data de vigência.
 
-## Estratégia
+## Frontend — arquivos afetados
 
-- Colunas novas são nullable para não quebrar dados existentes
-- Trigger atualizado preenche automaticamente para novos logs
-- Frontend faz fallback para UUID/JSON quando campos enriquecidos estão vazios (dados antigos)
+- `src/components/cargas/NovaCargaDialog.tsx` — reordena `TABS`, ajusta `validateCurrentTab`, troca aba Peso&Frete pelo novo componente
+- **novo** `src/components/cargas/PesoPrecificacaoTab.tsx` — input de peso, cálculo de distância via `useOSRMRoute`, agrupamento por eixos, cards de piso, inputs validados
+- **novo** `src/lib/antt.ts` — mapeamento veículo→eixos, tipo→categoria ANTT, função `calcularPisoMinimo({categoria, eixos, distanciaKm})`
+- **novo** `src/hooks/useAnttPisos.ts` — fetch e cache da tabela `antt_pisos`
+- `accept_carga_tx` / wizard de aceite — lê preço por eixo
+- **nova rota admin** `src/pages/admin/TabelaANTT.tsx` + entrada na sidebar admin
+
+## Resumo técnico
+
+- Migration: cria `antt_pisos`, `carga_precos_eixo`, trigger de validação, seed ANTT, RLS
+- Helpers TS para mapeamento e cálculo
+- Reordenação de abas + nova aba final
+- Cálculo de distância on-mount da última aba (OSRM já existe em `useOSRMRoute`)
+- Hard block client + server quando preço < piso
+- Aceite atualizado para resolver preço pelo nº de eixos do veículo
+- Página admin para manutenção da tabela ANTT
 
