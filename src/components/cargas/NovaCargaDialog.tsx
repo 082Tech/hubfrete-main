@@ -712,107 +712,32 @@ export function NovaCargaDialog({ onSuccess, children, editCarga, editOpen, onEd
           </div>
         );
 
-      case 'peso_frete':
+      case 'peso_precificacao': {
+        const origem = origemData.latitude && origemData.longitude
+          ? { lat: origemData.latitude, lng: origemData.longitude }
+          : null;
+        const destino = destinoData.latitude && destinoData.longitude
+          ? { lat: destinoData.latitude, lng: destinoData.longitude }
+          : null;
         return (
-          <div className="space-y-5">
-            <Alert className="border-primary/20 bg-primary/5">
-              <Weight className="w-4 h-4 text-primary" />
-              <AlertDescription className="text-xs leading-relaxed">
-                <strong>Por que o peso é essencial?</strong> Nosso sistema utiliza o peso para validar automaticamente a compatibilidade com a capacidade física das carrocerias dos motoristas no momento do aceite. Sem peso, não é possível garantir que o veículo suporta a carga — é a base de toda a operação logística.
-              </AlertDescription>
-            </Alert>
-            <FormField control={form.control} name="peso_kg" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Peso Total da Carga (kg) *</FormLabel>
-                <FormControl><WeightInput placeholder="Ex: 25.000" value={field.value} onValueChange={field.onChange} /></FormControl>
-                {pesoKg >= 1000 && <p className="text-xs text-muted-foreground">≈ {parseFloat((pesoKg / 1000).toFixed(4)).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 4 })} toneladas</p>}
-                <FormMessage />
-              </FormItem>
-            )} />
-            <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-              <FormField control={form.control} name="permite_fracionado" render={({ field }) => (
-                <FormItem className="flex items-start space-x-3 space-y-0">
-                  <FormControl><Checkbox checked={field.value ?? true} onCheckedChange={field.onChange} className="mt-0.5" /></FormControl>
-                  <div className="space-y-1">
-                    <FormLabel className="font-medium text-sm">Permitir transporte fracionado (LTL)</FormLabel>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Ao ativar, múltiplos motoristas podem aceitar frações do peso total, respeitando o limite mínimo definido abaixo e a capacidade do veículo.
-                    </p>
-                  </div>
-                </FormItem>
-              )} />
-              {form.watch('permite_fracionado') && (
-                <div className="ml-7 pt-1">
-                  <Label className="text-sm">Peso Mínimo por Fração (kg)</Label>
-                  <WeightInput placeholder="Ex: 5.000" className="mt-1.5 max-w-[260px]" value={pesoMinimoFracionado || undefined} onValueChange={(v) => setPesoMinimoFracionado(v || null)} />
-                  <p className="text-[11px] text-muted-foreground mt-1">Cada motorista deve aceitar pelo menos este peso.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Frete Section */}
-            <Separator className="my-2" />
-            <SectionHeader icon={DollarSign} title="Precificação do Frete" />
-
-            {!permitefracionado && (
-              <FormField control={form.control} name="tipo_frete" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de Frete</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent className="bg-popover border-border">
-                      {TIPOS_FRETE.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            )}
-
-            {tipoFrete === 'por_tonelada' && (
-              <div className="space-y-3">
-                <FormField control={form.control} name="valor_frete_tonelada" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor por Tonelada (R$/ton)</FormLabel>
-                    <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                {freteTotalTon > 0 && (
-                  <div className="p-3 rounded-lg border bg-muted/30 space-y-0.5">
-                    <Label className="text-xs text-muted-foreground">Frete Total Estimado</Label>
-                    <p className="text-xl font-bold text-primary">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(freteTotalTon)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {pesoTon} TON × R$ {(valorFreteTonelada ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/TON
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {tipoFrete === 'valor_fixo' && (
-              <div className="space-y-3">
-                <FormField control={form.control} name="valor_frete_fixo" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor do Frete (R$)</FormLabel>
-                    <FormControl><CurrencyInput placeholder="0,00" value={field.value} onValueChange={field.onChange} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <Alert className="border-muted">
-                  <Info className="w-4 h-4" />
-                  <AlertDescription className="text-xs">
-                    Valor fixo independente do peso carregado. Disponível apenas para carga fechada (sem fracionamento).
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-          </div>
+          <PesoPrecificacaoTab
+            pesoKg={pesoKg}
+            onPesoChange={(v) => form.setValue('peso_kg', v)}
+            pesoMinimoFracionado={pesoMinimoFracionado}
+            onPesoMinimoFracionadoChange={setPesoMinimoFracionado}
+            permiteFracionado={form.watch('permite_fracionado')}
+            onPermiteFracionadoChange={(v) => form.setValue('permite_fracionado', v)}
+            tipoCarga={form.watch('tipo')}
+            veiculosSelecionados={veiculosSelecionados}
+            origem={origem}
+            destino={destino}
+            precosEixo={precosEixo}
+            onPrecosEixoChange={setPrecosEixo}
+            onDistanciaChange={setDistanciaKmCalculada}
+          />
         );
+      }
 
-      case 'requisitos':
         return (
           <div className="space-y-4">
             <div className="space-y-2">
