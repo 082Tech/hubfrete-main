@@ -27,6 +27,9 @@ serve(async (req) => {
     // Auto-detect environment
     const DEV_PROJECT_REF = "ublyithvarvtqbwmxtyh";
     const isDevEnv = SUPABASE_URL.includes(DEV_PROJECT_REF);
+    const FOCUS_BASE_URL = isDevEnv
+      ? "https://homologacao.focusnfe.com.br"
+      : "https://api.focusnfe.com.br";
 
     // Helper: get empresa-specific FocusNFe token
     // Em dev → usa token_focus_homologacao; em prod → usa token-focus
