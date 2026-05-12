@@ -219,12 +219,32 @@ serve(async (req) => {
     }
 
     switch (action) {
+      case "emit":
       case "emitir_automatico": {
         if (!entrega_id) throw new Error("entrega_id is required");
-        
-        const { payload, FOCUS_BASE_URL, configFiscal, empresaToken } = await buildCteFromEntrega(entrega_id, supabase);
+
+        // Idempotência: se já existe CT-e ativo, retorna
+        const { data: ctesExist } = await supabase
+          .from("ctes")
+          .select("id, focus_ref, focus_status")
+          .eq("entrega_id", entrega_id)
+          .not("focus_status", "in", '("cancelado","erro")')
+          .limit(1);
+        if (ctesExist && ctesExist.length > 0) {
+          return new Response(JSON.stringify({ skipped: true, motivo: "CT-e já existe", cte: ctesExist[0] }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+
+        const { payload, FOCUS_BASE_URL, empresaId, empresaToken } = await buildCteFromEntrega(entrega_id, supabase);
         const refAuto = `CTE-AUTO-${entrega_id.slice(0, 8)}-${Date.now()}`;
         const authHeader = "Basic " + btoa(empresaToken + ":");
+
+        // Resolver viagem_id e UFs para popular no registro do CT-e
+        const { data: ve } = await supabase
+          .from("viagem_entregas").select("viagem_id").eq("entrega_id", entrega_id).maybeSingle();
+        const viagem_id = ve?.viagem_id || null;
+        const uf_origem = payload.uf_remetente || null;
+        const uf_destino = payload.uf_destinatario || null;
 
         const response = await fetch(`${FOCUS_BASE_URL}/v2/cte?ref=${refAuto}`, {
           method: "POST",
@@ -232,32 +252,96 @@ serve(async (req) => {
           body: JSON.stringify(payload),
         });
 
-        const result = await response.json();
+        let result: any = await response.json();
 
-        if (response.ok) {
-          await supabase.from("ctes").insert({
-            entrega_id,
-            valor: parseFloat(payload.valor_total),
-            focus_ref: refAuto,
-            focus_status: result.status || "processando_autorizacao",
-          });
-          
-          await supabase.from("entregas").update({ 
-            cte_gerado_automaticamente: true,
-            cte_tentativas_geracao: 1
-          }).eq("id", entrega_id);
-        } else {
+        if (!response.ok) {
           await supabase.from("entregas").update({ 
             cte_ultimo_erro: result.mensagem || JSON.stringify(result),
             cte_tentativas_geracao: 1
-          }).eq("id", entrega_id);
+          }).eq("id", entrega_id).select(); // ignore se colunas legacy não existem
+          return new Response(JSON.stringify(result), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        // Polling curto para tentar capturar status final 'autorizado'
+        // (focusnfe pode retornar 'processando_autorizacao' inicialmente)
+        let finalStatus = result.status || "processando_autorizacao";
+        let chave_acesso = result.chave_cte || null;
+        let numero = result.numero || null;
+        let serie = result.serie || null;
+        if (finalStatus !== "autorizado") {
+          for (let i = 0; i < 4; i++) {
+            await new Promise((r) => setTimeout(r, 1500));
+            const poll = await fetch(`${FOCUS_BASE_URL}/v2/cte/${refAuto}`, { headers: { "Authorization": authHeader } });
+            if (poll.ok) {
+              const pj = await poll.json();
+              finalStatus = pj.status || finalStatus;
+              chave_acesso = pj.chave_cte || pj.chave || chave_acesso;
+              numero = pj.numero || numero;
+              serie = pj.serie || serie;
+              if (finalStatus === "autorizado" || finalStatus?.startsWith("erro")) break;
+            }
+          }
+        }
+
+        await supabase.from("ctes").insert({
+          entrega_id,
+          empresa_id: empresaId,
+          valor: parseFloat(payload.valor_total),
+          focus_ref: refAuto,
+          focus_status: finalStatus,
+          chave_acesso,
+          numero: numero ? String(numero) : null,
+          serie: serie ? String(serie) : null,
+          viagem_id,
+          uf_origem,
+          uf_destino,
+        });
+
+        return new Response(JSON.stringify({ ...result, focus_status: finalStatus }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      
+
+      case "consultar": {
+        if (!ref) throw new Error("ref is required");
+        const { data: cte } = await supabase.from("ctes").select("empresa_id").eq("focus_ref", ref).maybeSingle();
+        const tk = cte?.empresa_id ? await getEmpresaToken(cte.empresa_id) : FOCUS_NFE_TOKEN_GLOBAL!;
+        const ah = "Basic " + btoa(tk + ":");
+        const r = await fetch(`${FOCUS_BASE_URL}/v2/cte/${ref}`, { headers: { Authorization: ah } });
+        const j = await r.json();
+        if (j.status) {
+          await supabase.from("ctes").update({
+            focus_status: j.status,
+            chave_acesso: j.chave_cte || null,
+            numero: j.numero ? String(j.numero) : null,
+            serie: j.serie ? String(j.serie) : null,
+          }).eq("focus_ref", ref);
+        }
+        return new Response(JSON.stringify(j), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      case "cancelar": {
+        if (!ref) throw new Error("ref is required");
+        const { data: cte } = await supabase.from("ctes").select("empresa_id").eq("focus_ref", ref).maybeSingle();
+        const tk = cte?.empresa_id ? await getEmpresaToken(cte.empresa_id) : FOCUS_NFE_TOKEN_GLOBAL!;
+        const ah = "Basic " + btoa(tk + ":");
+        const r = await fetch(`${FOCUS_BASE_URL}/v2/cte/${ref}`, {
+          method: "DELETE",
+          headers: { Authorization: ah, "Content-Type": "application/json" },
+          body: JSON.stringify({ justificativa: justificativa || "Cancelamento solicitado pelo emitente" }),
+        });
+        const j = await r.json();
+        if (r.ok) await supabase.from("ctes").update({ focus_status: "cancelado" }).eq("focus_ref", ref);
+        return new Response(JSON.stringify(j), { status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       default:
-        return new Response(JSON.stringify({ error: "Action not supported" }), { status: 400 });
+        return new Response(JSON.stringify({ error: "Action not supported" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Auto-detect environment for sub-actions
+    function getFocusBaseUrl() {
+      return SUPABASE_URL.includes("ublyithvarvtqbwmxtyh")
+        ? "https://homologacao.focusnfe.com.br"
+        : "https://api.focusnfe.com.br";
     }
 
   } catch (error: any) {
