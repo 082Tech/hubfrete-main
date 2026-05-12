@@ -1141,9 +1141,12 @@ export type Database = {
           id: string
           numero: string | null
           serie: string | null
+          uf_destino: string | null
+          uf_origem: string | null
           updated_at: string | null
           url: string | null
           valor: number | null
+          viagem_id: string | null
           xml_url: string | null
         }
         Insert: {
@@ -1156,9 +1159,12 @@ export type Database = {
           id?: string
           numero?: string | null
           serie?: string | null
+          uf_destino?: string | null
+          uf_origem?: string | null
           updated_at?: string | null
           url?: string | null
           valor?: number | null
+          viagem_id?: string | null
           xml_url?: string | null
         }
         Update: {
@@ -1171,9 +1177,12 @@ export type Database = {
           id?: string
           numero?: string | null
           serie?: string | null
+          uf_destino?: string | null
+          uf_origem?: string | null
           updated_at?: string | null
           url?: string | null
           valor?: number | null
+          viagem_id?: string | null
           xml_url?: string | null
         }
         Relationships: [
@@ -1674,6 +1683,11 @@ export type Database = {
       entregas: {
         Row: {
           assinatura_recebedor: string | null
+          canhoto_assinado_em: string | null
+          canhoto_assinatura_base64: string | null
+          canhoto_dispositivo_info: Json | null
+          canhoto_latitude: number | null
+          canhoto_longitude: number | null
           canhoto_url: string | null
           carga_id: string
           carroceria_id: string | null
@@ -1689,6 +1703,10 @@ export type Database = {
           foto_comprovante_entrega: string | null
           id: string
           motorista_id: string | null
+          nfes_conferencia_observacao: string | null
+          nfes_conferencia_status: string | null
+          nfes_conferidas_em: string | null
+          nfes_conferidas_por: string | null
           nome_recebedor: string | null
           notas_fiscais_urls: string[] | null
           observacoes: string | null
@@ -1704,6 +1722,11 @@ export type Database = {
         }
         Insert: {
           assinatura_recebedor?: string | null
+          canhoto_assinado_em?: string | null
+          canhoto_assinatura_base64?: string | null
+          canhoto_dispositivo_info?: Json | null
+          canhoto_latitude?: number | null
+          canhoto_longitude?: number | null
           canhoto_url?: string | null
           carga_id: string
           carroceria_id?: string | null
@@ -1719,6 +1742,10 @@ export type Database = {
           foto_comprovante_entrega?: string | null
           id?: string
           motorista_id?: string | null
+          nfes_conferencia_observacao?: string | null
+          nfes_conferencia_status?: string | null
+          nfes_conferidas_em?: string | null
+          nfes_conferidas_por?: string | null
           nome_recebedor?: string | null
           notas_fiscais_urls?: string[] | null
           observacoes?: string | null
@@ -1734,6 +1761,11 @@ export type Database = {
         }
         Update: {
           assinatura_recebedor?: string | null
+          canhoto_assinado_em?: string | null
+          canhoto_assinatura_base64?: string | null
+          canhoto_dispositivo_info?: Json | null
+          canhoto_latitude?: number | null
+          canhoto_longitude?: number | null
           canhoto_url?: string | null
           carga_id?: string
           carroceria_id?: string | null
@@ -1749,6 +1781,10 @@ export type Database = {
           foto_comprovante_entrega?: string | null
           id?: string
           motorista_id?: string | null
+          nfes_conferencia_observacao?: string | null
+          nfes_conferencia_status?: string | null
+          nfes_conferidas_em?: string | null
+          nfes_conferidas_por?: string | null
           nome_recebedor?: string | null
           notas_fiscais_urls?: string[] | null
           observacoes?: string | null
@@ -3704,6 +3740,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _invoke_edge_function: {
+        Args: { p_function_name: string; p_payload: Json }
+        Returns: number
+      }
       accept_carga_tx: {
         Args: {
           p_carga_id: string
