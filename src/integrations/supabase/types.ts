@@ -3870,6 +3870,18 @@ export type Database = {
         Args: { _filial_id: number; _user_id: string }
         Returns: boolean
       }
+      user_can_access_entrega: {
+        Args: { _entrega_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_can_access_motorista: {
+        Args: { _motorista_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_is_admin_of_empresa: {
+        Args: { _empresa_id: number; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       admin_role: "super_admin" | "admin" | "suporte"
