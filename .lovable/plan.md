@@ -1,100 +1,128 @@
+## Objetivo
 
+Tornar a emissão de CT-e e MDF-e **automática e baseada em eventos do motorista**, com canhoto 100% digital e suporte a cancelamento + reemissão de manifesto.
 
-# Frete Mínimo ANTT — Sugestão de preço por eixo na publicação
+---
 
-## O que muda na UX do modal
+## 1. CT-e automático após conferência da NF-e pelo motorista
 
-Reordena as abas do modal de Nova Oferta para deixar **Peso & Frete por último**, agora renomeada para **"Peso & Precificação"**. A ordem fica:
+### Banco — nova estrutura na tabela `entregas`
+- `nfes_conferidas_em timestamptz` — quando o motorista confirmou
+- `nfes_conferidas_por uuid` — auth.uid do motorista
+- `nfes_conferencia_observacao text` — observação opcional ("nota X faltando", etc.)
+- `nfes_conferencia_status text` — `'pendente' | 'ok' | 'divergente'`
 
-1. Dados
-2. Requisitos (veículos/carrocerias)
-3. Origem
-4. Destino
-5. **Peso & Precificação** (nova última etapa)
+### Trigger `trg_emitir_cte_apos_conferencia` em `entregas`
+Dispara `AFTER UPDATE` quando:
+- `nfes_conferencia_status` muda para `'ok'`
+- E ainda não existe CT-e para a entrega (`NOT EXISTS (SELECT 1 FROM ctes WHERE entrega_id = NEW.id)`)
 
-Na nova última etapa, baseado nos veículos selecionados em Requisitos e na distância calculada origem→destino, o sistema mostra **um card por grupo de eixos** com:
+Ação: chama a Edge Function `focusnfe-cte` via `pg_net.http_post` com `{action: "emit", entrega_id}`.
 
-- Categoria (ex: "4 eixos — Truck", "6 eixos — Carreta", "9 eixos — Bitrem")
-- Distância calculada (km via OSRM)
-- **Piso ANTT calculado** (R$/km × km, e R$/ton equivalente baseado no peso)
-- Input editável já preenchido com o piso (embarcador pode subir o valor, mas não descer)
-- Badge verde quando ≥ piso, vermelha + bloqueio quando < piso
+### Edge Function `focusnfe-cte` (já existe)
+- Mantém a lógica atual de montagem do payload
+- Após emissão bem-sucedida, grava CT-e em `ctes` com `focus_status='autorizado'`
+- Isso vai disparar a próxima cadeia (MDF-e)
 
-A oferta é publicada com **uma tabela de preços por categoria de eixos** em vez de um único `valor_frete_tonelada`. O motorista, ao aceitar, recebe automaticamente o valor correspondente ao seu veículo.
+### App do motorista (estrutura pronta para você ajustar depois)
+- Tela de coleta passa a ter passo "Confira as NF-es":
+  - Lista as NF-es esperadas (já em `nfes` linkadas à entrega)
+  - Botão "Notas conferem" → seta `nfes_conferencia_status='ok'`
+  - Botão "Há divergência" → abre observação e seta `'divergente'` (não emite CT-e)
 
-```text
-┌── Peso & Precificação ──────────────────────────┐
-│ Peso total: [____] kg    Distância: 487 km      │
-│ Tipo de carga ANTT: Carga Geral (auto)          │
-│                                                  │
-│ ┌─ 2 eixos (VUC, 3/4) ───── Piso: R$ 1.842 ──┐  │
-│ │ R$/ton sugerido: 92,10                      │  │
-│ │ [ R$ 92,10 ] ✓ Atende piso ANTT            │  │
-│ └────────────────────────────────────────────┘  │
-│ ┌─ 3 eixos (Toco) ───────── Piso: R$ 2.156 ──┐  │
-│ │ [ R$ 107,80 ] ✓                            │  │
-│ └────────────────────────────────────────────┘  │
-│ ┌─ 5 eixos (Carreta) ────── Piso: R$ 3.420 ──┐  │
-│ │ [ R$ 171,00 ] ✓                            │  │
-│ └────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────┘
+---
+
+## 2. MDF-e automático, agrupado por UF de destino
+
+### Banco — adições em `mdfes`
+- `uf_origem text`
+- `uf_destino text`
+- `viagem_id uuid` (se ainda não existe)
+- `agrupamento_chave text generated always as (viagem_id::text || '|' || uf_destino) stored` — chave única para evitar MDF-e duplicado por (viagem, UF)
+- Índice único parcial: `WHERE focus_status NOT IN ('cancelado', 'erro')`
+
+### Trigger `trg_emitir_mdfe_por_uf` em `ctes`
+Dispara `AFTER INSERT OR UPDATE` quando `focus_status = 'autorizado'`.
+
+Lógica:
+1. Identifica `viagem_id` e `uf_destino` da entrega (via `entregas → enderecos_carga` tipo='entrega')
+2. Conta CT-es autorizados da viagem com a mesma UF de destino
+3. Conta CT-es esperados da viagem para essa UF (entregas em `aguardando|saiu_para_coleta|coletado` que ainda não viraram CT-e)
+4. Se "esperados restantes = 0" e ainda não há MDF-e ativo para `(viagem_id, uf_destino)` → chama `focusnfe-mdfe` com `{action: "emit", viagem_id, uf_destino}`
+
+### Edge Function `focusnfe-mdfe`
+- Adicionar parâmetro `uf_destino` no payload de emissão
+- Filtrar CT-es da viagem por UF antes de montar o manifesto
+- Salvar `uf_origem`, `uf_destino`, `viagem_id` no registro
+
+### Exemplo concreto (Maceió → 2 AL + 1 PE)
+- 3 entregas coletadas e conferidas → 3 CT-es autorizados
+- Trigger detecta: 2 com UF=AL, 1 com UF=PE
+- Emite 2 MDF-es: um agrupando os 2 CT-es de AL, outro com o CT-e de PE
+
+---
+
+## 3. Canhoto digital (assinatura + GPS, sem upload)
+
+### Banco — adições em `entregas`
+- `canhoto_assinatura_base64 text` — imagem PNG da assinatura capturada na tela
+- `canhoto_latitude numeric(10,7)`
+- `canhoto_longitude numeric(10,7)`
+- `canhoto_assinado_em timestamptz`
+- `canhoto_dispositivo_info jsonb` — user-agent, accuracy GPS, etc.
+
+`canhoto_url` continua existindo (compatibilidade), mas não é mais obrigatório.
+
+### Atualizar `proteger_finalizacao_viagem`
+Trocar a checagem:
+```
+(canhoto_url IS NOT NULL) OR (canhoto_assinatura_base64 IS NOT NULL AND canhoto_latitude IS NOT NULL)
 ```
 
-## Backend / banco
+### App do motorista
+Estrutura no banco pronta. UI (assinatura touch + captura GPS) você ajusta no app.
 
-**Tabela `antt_pisos`** (editável pelo admin na Torre):
-- `id`, `categoria_carga` (geral, granel_solido, granel_liquido, frigorificada, perigosa, etc.)
-- `numero_eixos` (2, 3, 4, 5, 6, 7, 9)
-- `valor_por_km` (numeric) — coeficiente CCD (carga + deslocamento)
-- `valor_por_km_carga_lotacao` (opcional, segundo coeficiente CC)
-- `vigente_desde`, `ativo`
-- RLS: leitura para qualquer authenticated; escrita só admin (`is_admin`)
-- Seed inicial com Resolução ANTT vigente
+---
 
-**Tabela `carga_precos_eixo`** (preço por grupo de eixos da oferta):
-- `id`, `carga_id` (FK), `numero_eixos`, `valor_por_tonelada`, `piso_antt_calculado`, `created_at`
-- RLS: mesma da `cargas`
+## 4. Cancelar e reemitir MDF-e
 
-**Mapeamento tipo de carga → categoria ANTT** (helper TS, sem DB):
-- `carga_seca/container/indivisivel` → `geral`
-- `granel_solido` → `granel_solido`
-- `granel_liquido` → `granel_liquido`
-- `refrigerada/congelada` → `frigorificada`
-- `perigosa` → `perigosa`
-- `viva` → `granel_solido` (aproximação ANTT)
+### Edge Function `focusnfe-mdfe` — nova action `recriar`
+Sequência atômica:
+1. Cancela o MDF-e atual na Focus (action `cancelar` interna)
+2. Marca o registro antigo como `focus_status='cancelado'`
+3. Emite um novo MDF-e para o mesmo `(viagem_id, uf_destino)`, agora englobando CT-es novos que entraram depois
 
-**Mapeamento veículo → nº de eixos** (helper TS):
-- `vuc` → 2, `tres_quartos` → 2, `toco` → 3, `truck` → 3, `bitruck` → 4
-- `carreta` → 5, `carreta_ls/vanderleia` → 6, `bitrem` → 7, `rodotrem` → 9
+### UI — botão "Cancelar e reemitir manifesto"
+No painel da viagem, ao lado de cada MDF-e ativo, um botão que dispara essa action. Pede motivo (campo `justificativa` exigido pela SEFAZ).
 
-Veículos selecionados são agrupados por nº de eixos para gerar os cards.
+### Regra de segurança
+Só permite cancelar MDF-e que **não tenha sido encerrado** (`focus_status` ≠ `'encerrado'`) e dentro da janela de 24h da SEFAZ.
 
-**Trigger de validação no insert/update de `carga_precos_eixo`**: rejeita se `valor_por_tonelada × peso_ton < piso_antt_calculado` (hard block server-side).
+---
 
-## Aceite da carga
+## 5. Resumo de arquivos a alterar
 
-Em `accept_carga_tx` / `aceitar_carga_v8`: quando há `carga_precos_eixo`, busca o preço correspondente ao nº de eixos do veículo do motorista e usa esse valor para calcular `valor_frete` da entrega. Mantém compatibilidade com ofertas antigas (sem registros em `carga_precos_eixo` → usa `valor_frete_tonelada` como hoje).
+### Migrations (1 única migration)
+- ALTER `entregas` — colunas de conferência e canhoto digital
+- ALTER `mdfes` — uf_origem, uf_destino, viagem_id, agrupamento_chave + índice único
+- CREATE FUNCTION `emitir_cte_apos_conferencia` + trigger
+- CREATE FUNCTION `emitir_mdfe_por_uf` + trigger
+- REPLACE `proteger_finalizacao_viagem` aceitando canhoto digital
+- Habilitar `pg_net` se ainda não estiver
 
-## Admin (Torre)
+### Edge Functions
+- `focusnfe-cte`: aceitar invocação por trigger (idempotência via `focus_ref` único)
+- `focusnfe-mdfe`: aceitar `uf_destino` no payload, nova action `recriar`
 
-Nova página **Torre → Configurações → Tabela ANTT** para listar/editar `antt_pisos` por categoria + nº de eixos, com data de vigência.
+### Frontend
+- Painel de viagem: botão "Cancelar e reemitir manifesto" + indicador de UFs e status dos manifestos
+- Remover botões manuais de "Gerar CT-e" / "Gerar MDF-e" do painel (vira automático). Manter apenas botão "Reemitir" para troubleshooting.
 
-## Frontend — arquivos afetados
+---
 
-- `src/components/cargas/NovaCargaDialog.tsx` — reordena `TABS`, ajusta `validateCurrentTab`, troca aba Peso&Frete pelo novo componente
-- **novo** `src/components/cargas/PesoPrecificacaoTab.tsx` — input de peso, cálculo de distância via `useOSRMRoute`, agrupamento por eixos, cards de piso, inputs validados
-- **novo** `src/lib/antt.ts` — mapeamento veículo→eixos, tipo→categoria ANTT, função `calcularPisoMinimo({categoria, eixos, distanciaKm})`
-- **novo** `src/hooks/useAnttPisos.ts` — fetch e cache da tabela `antt_pisos`
-- `accept_carga_tx` / wizard de aceite — lê preço por eixo
-- **nova rota admin** `src/pages/admin/TabelaANTT.tsx` + entrada na sidebar admin
+## Detalhes técnicos importantes
 
-## Resumo técnico
-
-- Migration: cria `antt_pisos`, `carga_precos_eixo`, trigger de validação, seed ANTT, RLS
-- Helpers TS para mapeamento e cálculo
-- Reordenação de abas + nova aba final
-- Cálculo de distância on-mount da última aba (OSRM já existe em `useOSRMRoute`)
-- Hard block client + server quando preço < piso
-- Aceite atualizado para resolver preço pelo nº de eixos do veículo
-- Página admin para manutenção da tabela ANTT
-
+- **pg_net** é assíncrono: triggers só agendam o POST, não bloqueiam a transação. Resposta da Focus retorna pelo callback do edge function que grava em `ctes`/`mdfes`.
+- **Idempotência**: usar `ref` único `cte_<entrega_id>` e `mdfe_<viagem_id>_<uf>` para evitar emissão duplicada se o trigger disparar duas vezes.
+- **Service role**: trigger precisa do `SUPABASE_SERVICE_ROLE_KEY` para chamar Edge Function. Salvo via `app.settings` ou hardcoded no SQL da função (padrão Supabase para pg_net + edge functions).
+- **NÃO mexe** em CT-e/MDF-e já emitidos antes desta migration — só atua para frente.
