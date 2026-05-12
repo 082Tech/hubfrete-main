@@ -334,13 +334,6 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Action not supported" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Auto-detect environment for sub-actions
-    function getFocusBaseUrl() {
-      return SUPABASE_URL.includes("ublyithvarvtqbwmxtyh")
-        ? "https://homologacao.focusnfe.com.br"
-        : "https://api.focusnfe.com.br";
-    }
-
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
