@@ -121,12 +121,6 @@ serve(async (req) => {
       const origem = entrega.carga?.endereco_origem;
       const destino = entrega.carga?.endereco_destino;
       
-      // Auto-detect environment: dev Supabase → homologação, prod → produção
-      const DEV_PROJECT_REF = "ublyithvarvtqbwmxtyh";
-      const isDevEnv = SUPABASE_URL.includes(DEV_PROJECT_REF);
-      const FOCUS_BASE_URL = isDevEnv
-        ? "https://homologacao.focusnfe.com.br"
-        : "https://api.focusnfe.com.br";
       console.log(`FocusNFe environment: ${isDevEnv ? "HOMOLOGAÇÃO" : "PRODUÇÃO"}`);
       
       const isHomologacao = FOCUS_BASE_URL.includes("homologacao");
