@@ -98,7 +98,7 @@ type Empresa = {
   created_at: string;
   logo_url: string | null;
   comissao_hubfrete_percent: number | null;
-  'token-focus': string | null;
+  'token-focus'?: string | null;
   filiais: Filial[];
   _count: {
     filiais: number;
