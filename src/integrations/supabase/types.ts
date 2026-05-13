@@ -2683,11 +2683,9 @@ export type Database = {
           empresa_id: number | null
           foto_url: string | null
           id: string
-          jwt: string | null
           nome_completo: string
           possui_ajudante: boolean | null
           push_token: string | null
-          senha: string | null
           telefone: string | null
           tipo_cadastro:
             | Database["public"]["Enums"]["tipo_cadastro_motorista"]
@@ -2714,11 +2712,9 @@ export type Database = {
           empresa_id?: number | null
           foto_url?: string | null
           id?: string
-          jwt?: string | null
           nome_completo: string
           possui_ajudante?: boolean | null
           push_token?: string | null
-          senha?: string | null
           telefone?: string | null
           tipo_cadastro?:
             | Database["public"]["Enums"]["tipo_cadastro_motorista"]
@@ -2745,11 +2741,9 @@ export type Database = {
           empresa_id?: number | null
           foto_url?: string | null
           id?: string
-          jwt?: string | null
           nome_completo?: string
           possui_ajudante?: boolean | null
           push_token?: string | null
-          senha?: string | null
           telefone?: string | null
           tipo_cadastro?:
             | Database["public"]["Enums"]["tipo_cadastro_motorista"]
@@ -3312,10 +3306,8 @@ export type Database = {
           email: string | null
           id: number
           imagemUrl: string | null
-          jwt: string | null
           motorista_autonomo: boolean
           nome: string | null
-          senha: string | null
         }
         Insert: {
           auth_user_id?: string | null
@@ -3324,10 +3316,8 @@ export type Database = {
           email?: string | null
           id?: number
           imagemUrl?: string | null
-          jwt?: string | null
           motorista_autonomo?: boolean
           nome?: string | null
-          senha?: string | null
         }
         Update: {
           auth_user_id?: string | null
@@ -3336,10 +3326,8 @@ export type Database = {
           email?: string | null
           id?: number
           imagemUrl?: string | null
-          jwt?: string | null
           motorista_autonomo?: boolean
           nome?: string | null
-          senha?: string | null
         }
         Relationships: []
       }
@@ -3870,6 +3858,10 @@ export type Database = {
         Args: { _filial_id: number; _user_id: string }
         Returns: boolean
       }
+      user_can_access_carga: {
+        Args: { _carga_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_can_access_entrega: {
         Args: { _entrega_id: string; _user_id: string }
         Returns: boolean
@@ -3878,8 +3870,16 @@ export type Database = {
         Args: { _motorista_id: string; _user_id: string }
         Returns: boolean
       }
+      user_can_access_viagem: {
+        Args: { _user_id: string; _viagem_id: string }
+        Returns: boolean
+      }
       user_is_admin_of_empresa: {
         Args: { _empresa_id: number; _user_id: string }
+        Returns: boolean
+      }
+      user_owns_motorista: {
+        Args: { _motorista_id: string; _user_id: string }
         Returns: boolean
       }
     }
