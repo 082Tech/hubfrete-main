@@ -18,7 +18,7 @@ export function useCargaPrecosEixoBatch(cargaIds: string[]) {
     queryKey: ['carga_precos_eixo_batch', cargaIds.sort().join(',')],
     queryFn: async () => {
       if (cargaIds.length === 0) return new Map<string, CargaPrecoEixo[]>();
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('carga_precos_eixo')
         .select('carga_id, numero_eixos, valor_por_tonelada, piso_antt_calculado, distancia_km')
         .in('carga_id', cargaIds as any);
